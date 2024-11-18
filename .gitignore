@@ -1,4 +1,5 @@
 .idea/
+tests/
 ignore/
 wandb/
 *.DS_Store
