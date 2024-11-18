@@ -41,7 +41,7 @@ Note that GB/s $\approx$ B/ns.
 We can run the synthesis algorithm by invoking `runner.synthesize` as a Python module.
 
 ```
-python -m runner.synthesize --topology tests/ring.csv --algorithm greedy --save results.csv
+python -m runner.synthesize --topology tests/ring.csv --collective all_gather --synthesizer greedy --save results.csv
 ```
 
 Learn more about the arguments with the `--help` flag.

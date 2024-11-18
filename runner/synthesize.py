@@ -1,73 +1,121 @@
+import os
+import re
+import argparse
 from helper.timer import Timer
 from path_solver.congestionful_solver import CongestionfulSolver
 from time_translator.simple_translator import SimpleTranslator
-
-# == import topologies ==
+from topology.topology import Topology
 from topology.mesh import Mesh
-
-# == import collectives ==
+from collective.collective import Collective
 from collective.all_gather import AllGather
 
 
 def main():
-    # == setup ==
-    verbose = False
+    ####################################################################################################
+    # ARGPARSE
+    ####################################################################################################
+    parser = argparse.ArgumentParser()
+    # General arguments
+    parser.add_argument("--topology", action="store", type=str, required=True, help="Name of topology or filepath to topology csv")
+    parser.add_argument("--collective", action="store", type=str, required=True, help="Name of collective pattern or filepath to collective csv")
+    parser.add_argument("--synthesizer", action="store", type=str, required=True, help="Name of synthesis algorithm")
+    parser.add_argument("--save", action="store", type=str, required=False, help="Name to save output csv")
+    parser.add_argument("--verbose", action="store_true", required=False, help="Verbose")
+    # parser.add_argument("--num_trials", action="store", type=int, required=False, help="Number of trials")
+    # Algorithm-specific arguments
+    parser.add_argument("--num_beams", action="store", type=int, required=False, default=1, help="Beam width for beam search")
+    
+    args = parser.parse_args()
 
-    # create topology
-    width = 3
-    bandwidth = 50  # link bandwidth, GB/s
-    alpha = 2  # link latency, us
+    if args.save is None:
+        args.save = f"results/{args.topology.replace('/','-')}_{args.collective.replace('/','-')}_{args.synthesizer}"
+        if args.synthesizer=="multiple" or args.synthesizer=="":
+            args.save += f"_{args.num_beams}"
+    print(args.save)
+    ####################################################################################################
+    # TOPOLOGY
+    ####################################################################################################
+    if os.path.exists(args.topology):
+        topology = Topology(filename=args.topology)
+    elif args.topology=="mesh":
+        width = 3
+        bandwidth = 50  # link bandwidth, GB/s
+        alpha = 2  # link latency, us
 
-    beta = 1e6 / (bandwidth * 1024)  # us/MB
-    topology = Mesh(width=width, height=width, link_alpha_beta=(alpha, beta))
+        beta = 1e6 / (bandwidth * 1024)  # us/MB
+        topology = Mesh(width=width, height=width, link_alpha_beta=(alpha, beta))
+    else:
+        raise FileNotFoundError(f"Cannot find {args.topology}")
+    ####################################################################################################
+    # COLLECTIVE
+    ####################################################################################################
+    if os.path.exists(args.collective):
+        collective = Collective(filename=args.collective)
+    elif args.collective=="all_gather":
+        collective = AllGather(npus_count=topology.npus_count, collectives_count=1, chunk_size=1)
+    else:
+        raise FileNotFoundError(f"Cannot find {args.collective}")
+    ####################################################################################################
+    # SOLVE
+    ####################################################################################################
 
-    # create collective
-    collective = AllGather(npus_count=topology.npus_count, collectives_count=1,
-                           chunk_size=1)
+    if args.synthesizer=="tacos":
+        raise NotImplementedError()
+    elif args.synthesizer=="greedy":
+        raise NotImplementedError()
+    elif args.synthesizer=="multiple":
+        raise NotImplementedError()
+    elif args.synthesizer=="beam":
+        raise NotImplementedError()
+    elif args.synthesizer=="ilp":
+        # time-expanded model
+        # set initial time
+        # FIXME: assumption: All-Gather will take at least (width - 1) * 2 timestep (for 2D Mesh)
+        # FIXME: setting this to 1 is most accurate, but slow in synthesis
+        time = (width - 1) * 2
+        # time = 1
 
-    # time-expanded model
-    # set initial time
-    # FIXME: assumption: All-Gather will take at least (width - 1) * 2 timestep (for 2D Mesh)
-    # FIXME: setting this to 1 is most accurate, but slow in synthesis
-    time = (width - 1) * 2
-    # time = 1
+        # timer
+        solver_timer = Timer(name="PathSolver")
+        solver_step_timer = Timer(name="StepTimer")
+        time_translator_timer = Timer(name="TimeTranslator")
 
-    # timer
-    solver_timer = Timer(name="PathSolver")
-    solver_step_timer = Timer(name="StepTimer")
-    time_translator_timer = Timer(name="TimeTranslator")
+        # model
+        model = None
 
-    # model
-    model = None
+        # Run congestionful solver
+        solver_timer.start()
+        while True:
+            print(f"[Evaluating t = {time}]")
+            solver_step_timer.start()
 
-    # Run congestionful solver
-    solver_timer.start()
-    while True:
-        print(f"[Evaluating t = {time}]")
-        solver_step_timer.start()
+            # create model and run
+            model = CongestionfulSolver(collective=collective,
+                                        topology=topology,
+                                        time=time,
+                                        unit_rate=None,
+                                        search_time_limit=None)
+            finished, reached_count = model.solve(verbose=args.verbose)
 
-        # create model and run
-        model = CongestionfulSolver(collective=collective,
-                                    topology=topology,
-                                    time=time,
-                                    unit_rate=None,
-                                    search_time_limit=None)
-        finished, reached_count = model.solve(verbose=verbose)
+            solver_step_timer.stop()
 
-        solver_step_timer.stop()
+            solver_step_timer.print(unit='s')
+            solver_step_timer.reset()
 
-        solver_step_timer.print(unit='s')
-        solver_step_timer.reset()
+            if finished:
+                # all chunks arrived the dest
+                break
+            else:
+                # should expand TEN and continue
+                time += 1
 
-        if finished:
-            # all chunks arrived the dest
-            break
-        else:
-            # should expand TEN and continue
-            time += 1
-
-    path = model.get_path()
-    solver_timer.stop()
+        path = model.get_path()
+        solver_timer.stop()
+    else:
+        raise NotImplementedError(f"Synthesizer {args.synthesizer} not supported")
+    ####################################################################################################
+    # WRITE OUT
+    ####################################################################################################
 
     # Time-domain translation (ordering-based)
     time_translator_timer.start()

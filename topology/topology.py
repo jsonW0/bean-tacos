@@ -1,15 +1,14 @@
 import numpy as np
 import math
 from helper.typing import *
-
+import networkx as nx
 
 class Topology:
     """
     Base class to represent target physical topologies.
     """
 
-    def __init__(self,
-                 npus_count: int):
+    def __init__(self, npus_count):
         """
         Topology class initializer
         :param npus_count: total number of NPUs of the topology
@@ -54,6 +53,14 @@ class Topology:
             self.topology[dest, src] = True
             self.alpha[dest, src] = link_alpha_beta[0]
             self.beta[dest, src] = link_alpha_beta[1]
+    
+    # def load_nx(self, G: nx.DiGraph) -> None:
+    #     self.npus_count = len(G.nodes())
+    #     self.topology = nx.adjacency_matrix(G)
+    #     self.alpha = 
+
+    # def load_file(self, filename: str) -> None:
+    #     pass
 
     def add_self_loop(self) -> None:
         """
@@ -108,84 +115,84 @@ class Topology:
 
         return discretized_graph
 
-    def incoming_npus(self,
-                      dest: NpuId) -> List[NpuId]:
-        """
-        See neighboring NPUs which has incoming links through the target NPU, and return them.
+    # def incoming_npus(self,
+    #                   dest: NpuId) -> List[NpuId]:
+    #     """
+    #     See neighboring NPUs which has incoming links through the target NPU, and return them.
 
-        :param dest: target destination NPU
-        :return: list of NPU IDs that has an incoming links towards the target NPU.
-        """
+    #     :param dest: target destination NPU
+    #     :return: list of NPU IDs that has an incoming links towards the target NPU.
+    #     """
 
-        incoming_npus = list()
+    #     incoming_npus = list()
 
-        for src in range(self.npus_count):
-            if self.topology[src, dest]:
-                # has an incoming link
-                incoming_npus.append(src)
+    #     for src in range(self.npus_count):
+    #         if self.topology[src, dest]:
+    #             # has an incoming link
+    #             incoming_npus.append(src)
 
-        return incoming_npus
+    #     return incoming_npus
 
-    def outgoing_npus(self,
-                      src: NpuId) -> List[NpuId]:
-        outgoing_npus = list()
+    # def outgoing_npus(self,
+    #                   src: NpuId) -> List[NpuId]:
+    #     outgoing_npus = list()
 
-        for dest in range(self.npus_count):
-            if self.topology[src, dest]:
-                # has an incoming link
-                outgoing_npus.append(dest)
+    #     for dest in range(self.npus_count):
+    #         if self.topology[src, dest]:
+    #             # has an incoming link
+    #             outgoing_npus.append(dest)
 
-        return outgoing_npus
+    #     return outgoing_npus
 
-    def _get_dist(self,
-                  src: NpuId,
-                  dest: NpuId,
-                  chunk_size: ChunkSize = 1):
-        return self.alpha[src, dest] + (self.beta[src, dest] * chunk_size)
+    # def _get_dist(self,
+    #               src: NpuId,
+    #               dest: NpuId,
+    #               chunk_size: ChunkSize = 1):
+    #     return self.alpha[src, dest] + (self.beta[src, dest] * chunk_size)
 
-    def _pop_next_npu(self,
-                      npu: List[NpuId],
-                      dist: List[float]) -> NpuId:
-        next_npu = min(npu, key=lambda k: dist[k])
-        npu.remove(next_npu)
-        return next_npu
+    # def _pop_next_npu(self,
+    #                   npu: List[NpuId],
+    #                   dist: List[float]) -> NpuId:
+    #     next_npu = min(npu, key=lambda k: dist[k])
+    #     npu.remove(next_npu)
+    #     return next_npu
 
-    def _dijkstra(self,
-                  src: NpuId,
-                  dest: NpuId,
-                  chunk_size: ChunkSize = 1) -> Tuple[Time, List[NpuId]]:
-        # initialize
-        dist = [math.inf for _ in range(self.npus_count)]
-        prev_npu = [-1 for _ in range(self.npus_count)]
-        dist[src] = 0
+    # def _dijkstra(self,
+    #               src: NpuId,
+    #               dest: NpuId,
+    #               chunk_size: ChunkSize = 1) -> Tuple[Time, List[NpuId]]:
+    #     # initialize
+    #     dist = [math.inf for _ in range(self.npus_count)]
+    #     prev_npu = [-1 for _ in range(self.npus_count)]
+    #     dist[src] = 0
 
-        npus_to_visit = [i for i in range(self.npus_count)]
+    #     npus_to_visit = [i for i in range(self.npus_count)]
 
-        while len(npus_to_visit) > 0:
-            current_npu = self._pop_next_npu(npu=npus_to_visit, dist=dist)
-            if current_npu == dest:
-                break
+    #     while len(npus_to_visit) > 0:
+    #         current_npu = self._pop_next_npu(npu=npus_to_visit, dist=dist)
+    #         if current_npu == dest:
+    #             break
 
-            neighboring_npus = self.outgoing_npus(src=current_npu)
+    #         neighboring_npus = self.outgoing_npus(src=current_npu)
 
-            for neighbor in neighboring_npus:
-                new_path_dist = dist[current_npu] + self._get_dist(src=current_npu, dest=neighbor, chunk_size=chunk_size)
-                if new_path_dist < dist[neighbor]:
-                    dist[neighbor] = new_path_dist
-                    prev_npu[neighbor] = current_npu
+    #         for neighbor in neighboring_npus:
+    #             new_path_dist = dist[current_npu] + self._get_dist(src=current_npu, dest=neighbor, chunk_size=chunk_size)
+    #             if new_path_dist < dist[neighbor]:
+    #                 dist[neighbor] = new_path_dist
+    #                 prev_npu[neighbor] = current_npu
 
-        return dist[dest], prev_npu
+    #     return dist[dest], prev_npu
 
-    def shortest_path(self,
-                      src: NpuId,
-                      dest: NpuId,
-                      chunk_size: ChunkSize = 1) -> Tuple[Time, List[NpuId]]:
-        dist, prev_npu = self._dijkstra(src=src, dest=dest, chunk_size=chunk_size)
+    # def shortest_path(self,
+    #                   src: NpuId,
+    #                   dest: NpuId,
+    #                   chunk_size: ChunkSize = 1) -> Tuple[Time, List[NpuId]]:
+    #     dist, prev_npu = self._dijkstra(src=src, dest=dest, chunk_size=chunk_size)
 
-        path = list()
-        current_vertex = dest
-        while current_vertex != src:
-            path = [current_vertex] + path
-            current_vertex = prev_npu[current_vertex]
+    #     path = list()
+    #     current_vertex = dest
+    #     while current_vertex != src:
+    #         path = [current_vertex] + path
+    #         current_vertex = prev_npu[current_vertex]
 
-        return dist, [src] + path
+    #     return dist, [src] + path
