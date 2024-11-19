@@ -1,14 +1,15 @@
-import numpy as np
 import math
-from helper.typing import *
+import numpy as np
+import pandas as pd
 import networkx as nx
+from helper.typing import *
 
 class Topology:
     """
     Base class to represent target physical topologies.
     """
 
-    def __init__(self, npus_count):
+    def __init__(self, npus_count=0):
         """
         Topology class initializer
         :param npus_count: total number of NPUs of the topology
@@ -54,13 +55,20 @@ class Topology:
             self.alpha[dest, src] = link_alpha_beta[0]
             self.beta[dest, src] = link_alpha_beta[1]
     
-    # def load_nx(self, G: nx.DiGraph) -> None:
-    #     self.npus_count = len(G.nodes())
-    #     self.topology = nx.adjacency_matrix(G)
-    #     self.alpha = 
+    def load_nx(self, G: nx.Graph) -> None:
+        if len(nx.get_edge_attributes(G,"Latency (ns)"))==0 or len(nx.get_edge_attributes(G,"Bandwidth (GB/s)"))==0:
+            raise ValueError("Graph must have 'Latency (ns)' and 'Bandwidth (GB/s)' edge attributes")
+        self.npus_count = len(G.nodes())
+        self.topology = nx.to_numpy_array(G).astype(bool)
+        self.alpha = nx.to_numpy_array(G,weight="Latency (ns)")
+        self.alpha[~self.topology] = -1.
+        self.beta = nx.to_numpy_array(G,weight="Bandwidth (GB/s)")
+        self.beta[~self.topology] = -1.
 
-    # def load_file(self, filename: str) -> None:
-    #     pass
+    def load_file(self, filename: str) -> None:
+        df = pd.read_csv(filename,skiprows=1)
+        G = nx.from_pandas_edgelist(df, source="Src", target="Dest", edge_attr=["Latency (ns)", "Bandwidth (GB/s)"])
+        self.load_nx(G)
 
     def add_self_loop(self) -> None:
         """
