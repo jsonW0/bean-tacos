@@ -3,17 +3,13 @@ import re
 import argparse
 import networkx as nx
 import matplotlib.pyplot as plt
-
+from helper.timer import Timer
 from topology.topology import Topology
 from collective.collective import Collective
 from collective.all_gather import AllGather
-from synthesizer.ilp_synthesizer import ILPSynthesizer
+from synthesizer.naive_synthesizer import NaiveSynthesizer
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
-
-
-from helper.timer import Timer
-from path_solver.congestionful_solver import CongestionfulSolver
-from time_translator.simple_translator import SimpleTranslator
+from synthesizer.ilp_synthesizer import ILPSynthesizer
 
 
 def main():
@@ -64,7 +60,11 @@ def main():
     ####################################################################################################
     # SOLVE
     ####################################################################################################
-    if args.synthesizer=="tacos":
+    if args.synthesizer=="naive":
+        synthesizer = NaiveSynthesizer(topology=topology,collective=collective)
+        synthesizer.solve()
+        synthesizer.write_csv(args.save+"/result.csv")
+    elif args.synthesizer=="tacos":
         synthesizer = TACOSSynthesizer(topology=topology,collective=collective)
         synthesizer.solve()
         synthesizer.write_csv(args.save+"/result.csv")
