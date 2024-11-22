@@ -29,6 +29,10 @@ class Collective:
         self.rename_dict = dict()
         self.recovery_dict = dict()
 
+    @property
+    def num_chunks(self):
+        return len(self.chunks)
+
     def add(self,
             id: ChunkId,
             src: NpuId,

@@ -31,9 +31,9 @@ def process_collective_algo(filename):
             elif i == 2 and row[0].startswith("Chunks Count"):
                 data["Chunks_Count"] = int(row[1])
             elif i == 3 and row[0].startswith("Chunk Size"):
-                data["Chunk_Size"] = int(row[1])
+                data["Chunk_Size"] = float(row[1])
             elif i == 4 and row[0].startswith("Collective Time"):
-                data["Collective_Time"] = int(row[1])
+                data["Collective_Time"] = float(row[1])
             # Read the connections data starting from the fifth line
             elif i == 5 and row[0].startswith("SrcID"):
                 header = row
@@ -49,7 +49,7 @@ def process_collective_algo(filename):
                     if chunk == "None":
                         break
                     chunk_id, departure_time_ps, arrival_time_ps = chunk.split(":")
-                    arrival_time_ns = float(arrival_time_ps) / 1000  # Convert ps to ns
+                    arrival_time_ns = float(arrival_time_ps) #/ 1000  # Convert ps to ns
                     chunks.append((int(chunk_id), arrival_time_ns))
 
                 connection = {
@@ -107,7 +107,7 @@ def main():
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, ax=ax)
 
     # Set up the slider
-    max_ns = results["Collective_Time"] / 1000
+    max_ns = results["Collective_Time"] #/ 1000
 
     ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03], facecolor="lightgrey")
     slider = Slider(ax_slider, "Time (ns)", 0, max_ns, valinit=0, valstep=max_ns / 100)
@@ -188,7 +188,7 @@ def main():
         ax.axis("off")
 
         # Stop animation if the collective time has been reached
-        if frame_ns >= results["Collective_Time"] / 1000:
+        if frame_ns >= results["Collective_Time"]: #/ 1000:
             ani.event_source.stop()
 
     # Handle slider changes to update frame
