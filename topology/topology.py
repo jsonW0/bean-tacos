@@ -9,21 +9,28 @@ class Topology:
     Base class to represent target physical topologies.
     """
 
-    def __init__(self, npus_count=0):
+    def __init__(self, npus_count=None, G: nx.Graph=None, filename: str=None):
         """
         Topology class initializer
         :param npus_count: total number of NPUs of the topology
         """
-        self.npus_count = npus_count
+        if G is not None and npus_count is None and filename is None:
+            self.load_nx(G)
+        elif filename is not None and npus_count is None and G is None:
+            self.load_file(filename)
+        elif npus_count is not None and G is None and filename is None:
+            self.npus_count = 0
 
-        # represent a topology in adjacency matrix format
-        # True if link[src, dest] exists, False if not.
-        self.topology = np.zeros(shape=(npus_count, npus_count), dtype=bool)
+            # represent a topology in adjacency matrix format
+            # True if link[src, dest] exists, False if not.
+            self.topology = np.zeros(shape=(self.npus_count, self.npus_count), dtype=bool)
 
-        # stores alpha (link latency) and beta (reciprocal of link BW) of each link
-        # if link doesn't exist, default value: -1.
-        self.alpha = np.full_like(self.topology, fill_value=-1, dtype=float)
-        self.beta = np.full_like(self.topology, fill_value=-1, dtype=float)
+            # stores alpha (link latency) and beta (reciprocal of link BW) of each link
+            # if link doesn't exist, default value: -1.
+            self.alpha = np.full_like(self.topology, fill_value=-1, dtype=float)
+            self.beta = np.full_like(self.topology, fill_value=-1, dtype=float)
+        else:
+            raise ValueError("Exactly one of 'npus_count', 'G', or 'filename' must be specified")
 
     def connect(self,
                 src: NpuId,

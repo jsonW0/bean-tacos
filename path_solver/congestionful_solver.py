@@ -169,6 +169,21 @@ class CongestionfulSolver:
 
         return path
 
+    def get_path_numpy(self) -> OrderedPath:
+        flow = self.model.getAttr('x', self.sent.values())
+        flow = np.array(flow).reshape((self.chunks_count, self.links_count))
+
+        path_numpy = np.zeros(shape=(self.chunks_count, self.npus_count, self.npus_count, self.time), dtype=bool)
+        for (c, e), sent in np.ndenumerate(flow):
+            t, _, src, dest = self.ten.unroll_link_id(link_id=e)
+
+            if sent >= 1:
+                path_numpy[c, src, dest, t] = True
+            else:
+                path_numpy[c, src, dest, t] = False
+
+        return path_numpy
+
     def get_contains(self) -> np.array:
         contains = self.model.getAttr('x', self.contains.values())
         contains = np.array(contains, dtype=bool).reshape((self.chunks_count, self.npus_count, (self.time + 1)))

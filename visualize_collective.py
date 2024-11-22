@@ -6,6 +6,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.widgets import Slider, Button
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 
 def process_collective_algo(filename):
@@ -38,7 +40,7 @@ def process_collective_algo(filename):
             elif i >= 6:
                 src_id = int(row[0])
                 dest_id = int(row[1])
-                latency_ns = int(row[2])
+                latency_ns = float(row[2])
                 bandwidth_gbps = float(row[3])
 
                 # Parse Chunks column
@@ -46,8 +48,8 @@ def process_collective_algo(filename):
                 for chunk in row[4:]:
                     if chunk == "None":
                         break
-                    chunk_id, arrival_time_ps = chunk.split(":")
-                    arrival_time_ns = int(arrival_time_ps) / 1000  # Convert ps to ns
+                    chunk_id, departure_time_ps, arrival_time_ps = chunk.split(":")
+                    arrival_time_ns = float(arrival_time_ps) / 1000  # Convert ps to ns
                     chunks.append((int(chunk_id), arrival_time_ns))
 
                 connection = {
@@ -78,8 +80,11 @@ def main():
 
     # Calculate link crossing times (time to traverse each link)
     df["Link Time (ns)"] = df["Latency (ns)"] + (
-        (results["Chunk_Size"]) / (1 << 30)
-    ) * (1e9 / df["Bandwidth (GB/s=B/ns)"])
+        (float(results["Chunk_Size"])) / (1 << 30)
+    ) * (1e9 / df["Bandwidth (GB/s=B/ns)"].astype(float))
+
+    print(results["Chunk_Size"])
+    print(df)
 
     # Create network graph
     G = nx.DiGraph()

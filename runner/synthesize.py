@@ -50,6 +50,7 @@ def main():
     # COLLECTIVE
     ####################################################################################################
     if os.path.exists(args.collective):
+        raise NotImplementedError(f"Does not yet support collective from file path")
         collective = Collective(filename=args.collective)
     elif args.collective=="all_gather":
         collective = AllGather(npus_count=topology.npus_count, collectives_count=1, chunk_size=1)
@@ -58,7 +59,6 @@ def main():
     ####################################################################################################
     # SOLVE
     ####################################################################################################
-
     if args.synthesizer=="tacos":
         raise NotImplementedError()
     elif args.synthesizer=="greedy":
@@ -72,6 +72,7 @@ def main():
         # set initial time
         # FIXME: assumption: All-Gather will take at least (width - 1) * 2 timestep (for 2D Mesh)
         # FIXME: setting this to 1 is most accurate, but slow in synthesis
+        width = 3
         time = (width - 1) * 2
         # time = 1
 
@@ -110,32 +111,32 @@ def main():
                 time += 1
 
         path = model.get_path()
+        print("HERE",model.get_path_numpy())
         solver_timer.stop()
+
+        # Time-domain translation (ordering-based)
+        # time_translator_timer.start()
+        # time_estimator = SimpleTranslator(topology=topology,
+        #                                 collective=collective,
+        #                                 ordered_path=path)
+        # collective_time = time_estimator.run()
+        # time_translator_timer.stop()
+
+        # print synthesized path
+        path.print_path()
+
+        # Print result
+        print()
+        solver_timer.print(unit='s')
+        # time_translator_timer.print(unit='s')
+
+        # print()
+        # print(f"[Result] Collective Time: {collective_time:.2f} us")
     else:
         raise NotImplementedError(f"Synthesizer {args.synthesizer} not supported")
     ####################################################################################################
     # WRITE OUT
     ####################################################################################################
-
-    # Time-domain translation (ordering-based)
-    time_translator_timer.start()
-    time_estimator = SimpleTranslator(topology=topology,
-                                      collective=collective,
-                                      ordered_path=path)
-    collective_time = time_estimator.run()
-    time_translator_timer.stop()
-
-    # print synthesized path
-    path.print_path()
-
-    # Print result
-    print()
-    solver_timer.print(unit='s')
-    time_translator_timer.print(unit='s')
-
-    print()
-    print(f"[Result] Collective Time: {collective_time:.2f} us")
-
 
 if __name__ == '__main__':
     main()
