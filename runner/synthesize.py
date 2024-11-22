@@ -8,6 +8,7 @@ from topology.topology import Topology
 from collective.collective import Collective
 from collective.all_gather import AllGather
 from synthesizer.ilp_synthesizer import ILPSynthesizer
+from synthesizer.tacos_synthesizer import TACOSSynthesizer
 
 
 from helper.timer import Timer
@@ -37,13 +38,13 @@ def main():
         if args.synthesizer=="multiple" or args.synthesizer=="":
             args.save += f"_{args.num_beams}"
     os.makedirs(args.save, exist_ok=True)
-    print(f"Saving to f{args.save}")
+    print(f"Saving to {args.save}")
     ####################################################################################################
     # TOPOLOGY
     ####################################################################################################
     if os.path.exists(args.topology):
         topology = Topology(filename=args.topology)
-    elif args.topology=="mesh":
+    elif args.topology=="grid":
         G = nx.convert_node_labels_to_integers(nx.grid_graph(dim=(3,3)).to_directed())
         for src, dest in G.edges:
             G.add_edge(src,dest,alpha=0,beta=1)
@@ -64,7 +65,9 @@ def main():
     # SOLVE
     ####################################################################################################
     if args.synthesizer=="tacos":
-        raise NotImplementedError()
+        synthesizer = TACOSSynthesizer(topology=topology,collective=collective)
+        synthesizer.solve()
+        synthesizer.write_csv(args.save+"/result.csv")
     elif args.synthesizer=="greedy":
         raise NotImplementedError()
     elif args.synthesizer=="multiple":

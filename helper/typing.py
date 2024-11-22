@@ -15,6 +15,7 @@ ChunkId = int
 ChunkSize = float  # e.g., 2.7 MB
 
 # Time-expanded Network (TEN)
+Event = Tuple[LinkId, ChunkId, Time, Time]
 TenTimestep = int  # TEN uses discretized Timestep
 TenLinkId = int
 TenLinkData = Tuple[TenTimestep, NpuId, NpuId]  # (start timestep, src, dest)

@@ -64,7 +64,7 @@ class ILPSynthesizer:
             for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b
         ), name="overlap_neg")
 
-    def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> Tuple[bool, int]:
+    def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> None:
         if time_limit is not None:
             self.model.Params.TimeLimit = time_limit
         self.model.Params.OutputFlag = verbose
@@ -83,7 +83,7 @@ class ILPSynthesizer:
             writer.writerow(["Chunks Count",len(self.chunks)])
             writer.writerow(["Chunk Size",self.chunk_size])
             writer.writerow(["Collective Time",self.model.getVarByName('T').X,"ns"])
-            writer.writerow(["SrcID","DestID","Latency (ns)","Bandwidth (GB/s)","Chunks (ID:ps:ps)"])
+            writer.writerow(["SrcID","DestID","Latency (ns)","Bandwidth (GB/s)","Chunks (ID:ns:ns)"])
             for src, dest in self.edges:
                 chunks = []
                 for chunk in self.chunks:

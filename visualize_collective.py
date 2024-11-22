@@ -84,9 +84,6 @@ def main():
         (float(results["Chunk_Size"])) / (1 << 30)
     ) * (1e9 / df["Bandwidth (GB/s=B/ns)"].astype(float))
 
-    print(results["Chunk_Size"])
-    print(df)
-
     # Create network graph
     G = nx.DiGraph()
     for _, row in df.iterrows():
