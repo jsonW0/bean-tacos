@@ -49,15 +49,16 @@ def process_collective_algo(filename):
                     if chunk == "None":
                         break
                     chunk_id, departure_time_ps, arrival_time_ps = chunk.split(":")
+                    departure_time_ps = float(departure_time_ps)
                     arrival_time_ns = float(arrival_time_ps) #/ 1000  # Convert ps to ns
-                    chunks.append((int(chunk_id), arrival_time_ns))
+                    chunks.append((int(chunk_id), departure_time_ps, arrival_time_ns))
 
                 connection = {
                     "SrcID": src_id,
                     "DestID": dest_id,
                     "Latency (ns)": latency_ns,
                     "Bandwidth (GB/s=B/ns)": bandwidth_gbps,
-                    "Chunks (ID:ns)": chunks,
+                    "Chunks (ID:ns:ns)": chunks,
                 }
                 data["Connections"].append(connection)
 
@@ -93,7 +94,7 @@ def main():
             row["SrcID"],
             row["DestID"],
             link_time=row["Link Time (ns)"],
-            chunks=row["Chunks (ID:ns)"],
+            chunks=row["Chunks (ID:ns:ns)"],
         )
 
     # Initialize plot
@@ -121,11 +122,13 @@ def main():
 
     # Calculate departure times based on arrival times and link crossing times
     for (src, dest), data in G.edges.items():
-        for chunk_id, arrival_time_ns in data["chunks"]:
+        for chunk_id, departure_time_ns, arrival_time_ns in data["chunks"]:
             link_time = G[src][dest]["link_time"]
-            start_time_ns = arrival_time_ns - link_time  # Calculate the departure time
+            if not np.isclose(departure_time_ns+link_time,arrival_time_ns):
+                # print(f"For ({src},{dest}) chunk id {chunk_id} departing {departure_time_ns} arriving at {arrival_time_ns}, did not take expected {link_time}")
+                raise ValueError(f"For ({src},{dest}) chunk id {chunk_id} departing {departure_time_ns} arriving at {arrival_time_ns}, did not take expected {link_time}")
             chunk_positions[(src, dest)].append(
-                (chunk_id, start_time_ns, arrival_time_ns)
+                (chunk_id, departure_time_ns, arrival_time_ns)
             )
 
     is_playing = False

@@ -6,7 +6,7 @@ from topology.topology import Topology
 from collective.collective import Collective
 
 class ILPSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576 / 976562.5, big_num: float = 1e6):
+    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576 / 976562.5, big_num: float = 1e4):
         self.topology = topology
         self.collective = collective
         self.chunk_size = chunk_size
@@ -36,14 +36,14 @@ class ILPSynthesizer:
     def _set_constraints(self) -> None:
         # All nodes receive precondition chunks at t=0
         self.model.addConstrs((self.receive_time[node, chunk] == 0 for chunk, node in self.collective.precondition), name="precondition")
-        # All postconditions must receive chunk from at least one neighbor
+        # All postconditions must receive chunk from one neighbor
         self.model.addConstrs((sum(self.send_bool[src, dest, chunk] for src, edge_dest in self.edges if edge_dest==dest) == 1 for chunk, dest in self.collective.postcondition if ((chunk, dest) not in self.collective.precondition)), name="postcondition")
         # Total time is when all postconditions have been marked received 
         self.model.addConstrs((self.receive_time[node, chunk] <= self.total_time for chunk, node in self.collective.postcondition), name="postcondition_time")
         
         # Given a send from i->j of chunk c, the src must have received the chunk before sending, and the arrival time must be send_time + delay
         self.model.addConstrs(((self.send_bool[src, dest, chunk] == 1) >> (self.receive_time[src, chunk] <= self.send_time[src, dest, chunk]) for src, dest in self.edges for chunk in self.chunks), name="sender_possesses")
-        self.model.addConstrs(((self.send_bool[src, dest, chunk] == 1) >> (self.send_time[src, dest, chunk] + self.topology.get_delay((src,dest), self.chunk_size) <= self.receive_time[dest, chunk]) for src, dest in self.edges for chunk in self.chunks), name="link_delay")
+        self.model.addConstrs(((self.send_bool[src, dest, chunk] == 1) >> (self.send_time[src, dest, chunk] + self.topology.get_delay((src,dest), self.chunk_size) == self.receive_time[dest, chunk]) for src, dest in self.edges for chunk in self.chunks), name="link_delay")
         # Otherwise, set send_time to a large number
         self.model.addConstrs(((self.send_bool[src, dest, chunk] == 0) >> (self.send_time[src, dest, chunk] == self.big_num) for src, dest in self.edges for chunk in self.chunks), name="send_default")
 
