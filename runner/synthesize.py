@@ -1,6 +1,8 @@
 import os
 import re
 import argparse
+import networkx as nx
+import matplotlib.pyplot as plt
 
 from topology.topology import Topology
 from collective.collective import Collective
@@ -42,13 +44,10 @@ def main():
     if os.path.exists(args.topology):
         topology = Topology(filename=args.topology)
     elif args.topology=="mesh":
-        raise NotImplementedError("Mesh not supported")
-        # width = 3
-        # bandwidth = 50  # link bandwidth, GB/s
-        # alpha = 2  # link latency, us
-
-        # beta = 1e6 / (bandwidth * 1024)  # us/MB
-        # topology = Mesh(width=width, height=width, link_alpha_beta=(alpha, beta))
+        G = nx.convert_node_labels_to_integers(nx.grid_graph(dim=(3,3)).to_directed())
+        for src, dest in G.edges:
+            G.add_edge(src,dest,alpha=0,beta=1)
+        topology = Topology(G=G)
     else:
         raise FileNotFoundError(f"Cannot find {args.topology}")
     ####################################################################################################
@@ -74,7 +73,7 @@ def main():
         raise NotImplementedError()
     elif args.synthesizer=="ilp":
         synthesizer = ILPSynthesizer(topology=topology,collective=collective)
-        synthesizer.solve(verbose=args.verbose,filename=args.save+"/result.lp")
+        synthesizer.solve(verbose=args.verbose,filename=args.save+"/result.lp",time_limit=60)
         synthesizer.write(args.save+"/result.sol")
         synthesizer.write_csv(args.save+"/result.csv")
     else:

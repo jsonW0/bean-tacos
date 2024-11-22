@@ -6,11 +6,7 @@ from topology.topology import Topology
 from collective.collective import Collective
 
 class ILPSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576, big_num: float = 1e12):
-        
-        chunk_size = 1048576 / 976562.5
-        big_num = 1000000
-        self.epsilon = 0.00001
+    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576 / 976562.5, big_num: float = 1e6):
         self.topology = topology
         self.collective = collective
         self.chunk_size = chunk_size
@@ -37,19 +33,36 @@ class ILPSynthesizer:
         self.model.setObjective(self.total_time, sense=GRB.MINIMIZE)
     
     def _set_constraints(self) -> None:
+        # All nodes receive precondition chunks at t=0
         self.model.addConstrs((self.receive_time[node, chunk] == 0 for chunk, node in self.collective.precondition), name="precondition")
-        self.model.addConstrs((sum(self.send_bool[src, dest, chunk] for src, edge_dest in self.edges if edge_dest==dest) >= 1 for chunk, dest in self.collective.postcondition if ((chunk, dest) not in self.collective.precondition)), name="postcondition")
+        # All postconditions must receive chunk from at least one neighbor
+        self.model.addConstrs((sum(self.send_bool[src, dest, chunk] for src, edge_dest in self.edges if edge_dest==dest) == 1 for chunk, dest in self.collective.postcondition if ((chunk, dest) not in self.collective.precondition)), name="postcondition")
+        # Total time is when all postconditions have been marked received 
         self.model.addConstrs((self.receive_time[node, chunk] <= self.total_time for chunk, node in self.collective.postcondition), name="postcondition_time")
-        self.model.addConstrs((self.receive_time[src, chunk] <= self.send_time[src, dest, chunk] + self.big_num*(1-self.send_bool[src, dest, chunk]) for src, dest in self.edges for chunk in self.chunks), name="receive_send")
-        self.model.addConstrs((self.receive_time[dest, chunk] - self.send_time[src, dest, chunk] + self.big_num*(1-self.send_bool[src, dest, chunk]) >= self.topology.get_delay((src,dest), self.chunk_size) for src, dest in self.edges for chunk in self.chunks), name="link_delay")        
+        
+        # Given a send from i->j of chunk c, the src must have received the chunk before sending, and the arrival time must be send_time + delay
+        self.model.addConstrs(((self.send_bool[src, dest, chunk] == 1) >> (self.receive_time[src, chunk] <= self.send_time[src, dest, chunk]) for src, dest in self.edges for chunk in self.chunks), name="sender_possesses")
+        self.model.addConstrs(((self.send_bool[src, dest, chunk] == 1) >> (self.send_time[src, dest, chunk] + self.topology.get_delay((src,dest), self.chunk_size) <= self.receive_time[dest, chunk]) for src, dest in self.edges for chunk in self.chunks), name="link_delay")
+        # Otherwise, set send_time to a large number
+        self.model.addConstrs(((self.send_bool[src, dest, chunk] == 0) >> (self.send_time[src, dest, chunk] == self.big_num) for src, dest in self.edges for chunk in self.chunks), name="send_default")
+
+        # Exactly one of order_bool must be true
         self.model.addConstrs((self.order_bool[src, dest, chunk_a, chunk_b]+self.order_bool[src, dest, chunk_b, chunk_a] == 1 for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b), name="order_specified")
-        self.model.addConstrs((self.send_time[src, dest, chunk_a] <= self.send_time[src, dest, chunk_b] + self.big_num*(1-self.order_bool[src, dest, chunk_a, chunk_b])+self.big_num*(2-(self.send_bool[src, dest, chunk_a]+self.send_bool[src, dest, chunk_b]))+self.epsilon for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b), name="order_time")
-        self.model.addConstrs((
-            (self.send_time[src, dest, chunk_a]-self.send_time[src, dest, chunk_b]) >= 
-            self.topology.get_delay((src,dest), self.chunk_size) - self.big_num*(1-self.order_bool[src, dest, chunk_b, chunk_a]) - self.big_num*(2-(self.send_bool[src, dest, chunk_a]+self.send_bool[src, dest, chunk_b]))
-              for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b
-        ), name="overlap_pos")
-        self.model.addConstrs((self.send_time[src, dest, chunk_b]-self.send_time[src, dest, chunk_a] >= self.topology.get_delay((src,dest), self.chunk_size) - self.big_num*(1-self.order_bool[src, dest, chunk_a, chunk_b]) - self.big_num*(2-(self.send_bool[src, dest, chunk_a]+self.send_bool[src, dest, chunk_b])) for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b), name="overlap_neg")
+        # Order_bool dictates send time
+        self.model.addConstrs(((self.order_bool[src, dest, chunk_a, chunk_b] == 1) >> (self.send_time[src, dest, chunk_a]-self.send_time[src, dest, chunk_b] >= 
+            self.topology.get_delay((src,dest), self.chunk_size) - self.big_num*(2-(self.send_bool[src, dest, chunk_a]+self.send_bool[src, dest, chunk_b])))
+              for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b), name="overlap_pos")
+        self.model.addConstrs(((self.order_bool[src, dest, chunk_a, chunk_b] == 0) >> (self.send_time[src, dest, chunk_b]-self.send_time[src, dest, chunk_a] >= 
+            self.topology.get_delay((src,dest), self.chunk_size) - self.big_num*(2-(self.send_bool[src, dest, chunk_a]+self.send_bool[src, dest, chunk_b])))
+              for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b), name="overlap_neg")
+        # self.model.addConstrs((
+        #     (self.send_time[src, dest, chunk_a]-self.send_time[src, dest, chunk_b]) >= 
+        #     self.topology.get_delay((src,dest), self.chunk_size) - self.big_num*(1-self.order_bool[src, dest, chunk_b, chunk_a]) - self.big_num*(2-(self.send_bool[src, dest, chunk_a]+self.send_bool[src, dest, chunk_b]))
+        #       for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b
+        # ), name="overlap_pos")
+        # self.model.addConstrs((self.send_time[src, dest, chunk_b]-self.send_time[src, dest, chunk_a] >= self.topology.get_delay((src,dest), self.chunk_size) - self.big_num*(1-self.order_bool[src, dest, chunk_a, chunk_b]) - self.big_num*(2-(self.send_bool[src, dest, chunk_a]+self.send_bool[src, dest, chunk_b])) for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b), name="overlap_neg")
+        # self.model.addConstrs(((self.order_bool[src, dest, chunk_a, chunk_b]) >> (self.send_time[src, dest, chunk_a] <= self.send_time[src, dest, chunk_b]) for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b))
+        # self.model.addConstrs((self.send_time[src, dest, chunk_a] <= self.send_time[src, dest, chunk_b] + self.big_num*(1-self.order_bool[src, dest, chunk_a, chunk_b])+self.big_num*(2-(self.send_bool[src, dest, chunk_a]+self.send_bool[src, dest, chunk_b])) for src, dest in self.edges for chunk_a in self.chunks for chunk_b in self.chunks if chunk_a!=chunk_b), name="order_time")
 
     def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> Tuple[bool, int]:
         if time_limit is not None:

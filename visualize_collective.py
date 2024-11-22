@@ -110,7 +110,7 @@ def main():
     max_ns = results["Collective_Time"] #/ 1000
 
     ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03], facecolor="lightgrey")
-    slider = Slider(ax_slider, "Time (ns)", 0, max_ns, valinit=0, valstep=max_ns / 100)
+    slider = Slider(ax_slider, "Time (ns)", 0, max_ns*1.01, valinit=0, valstep=max_ns / 101)
 
     # Set up the play/pause button
     ax_button = plt.axes([0.85, 0.05, 0.1, 0.04])
@@ -217,7 +217,7 @@ def main():
 
     # Initialize animation
     ani = animation.FuncAnimation(
-        fig, update, frames=np.linspace(0, max_ns, num=100), interval=50, repeat=False
+        fig, update, frames=np.linspace(0, max_ns*1.01, num=101), interval=50, repeat=False
     )
     plt.show()
 
