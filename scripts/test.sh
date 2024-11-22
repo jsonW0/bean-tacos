@@ -14,8 +14,8 @@
 # clear; python -m runner.synthesize --topology tests/bidirectional_ring_slow.csv --collective all_gather --synthesizer ilp
 # clear; python visualize_collective.py --filename results/t=tests-bidirectional_ring_slow_c=all_gather_s=ilp/result.csv
 
-clear; python -m runner.synthesize --topology tests/heterogeneous.csv --collective all_gather --synthesizer ilp
-clear; python visualize_collective.py --filename results/t=tests-heterogeneous_c=all_gather_s=ilp/result.csv
+# clear; python -m runner.synthesize --topology tests/heterogeneous.csv --collective all_gather --synthesizer ilp
+# clear; python visualize_collective.py --filename results/t=tests-heterogeneous_c=all_gather_s=ilp/result.csv
 
-# clear; python -m runner.synthesize --topology mesh --collective all_gather --synthesizer ilp --verbose
-# python visualize_collective.py --filename results/t=mesh_c=all_gather_s=ilp/result.csv
+clear; python -m runner.synthesize --topology mesh --collective all_gather --synthesizer ilp --verbose
+python visualize_collective.py --filename results/t=mesh_c=all_gather_s=ilp/result.csv
