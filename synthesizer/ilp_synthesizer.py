@@ -75,7 +75,7 @@ class ILPSynthesizer:
     def write(self, filename: str) -> None:
         self.model.write(filename)
     
-    def write_csv(self, filename: str) -> None:
+    def write_csv(self, filename: str, synthesis_time: float) -> None:
         with open(filename, mode="w") as f:
             writer = csv.writer(f)
             writer.writerow(["NPUs Count",len(self.nodes)])
@@ -83,6 +83,7 @@ class ILPSynthesizer:
             writer.writerow(["Chunks Count",len(self.chunks)])
             writer.writerow(["Chunk Size",self.chunk_size])
             writer.writerow(["Collective Time",self.model.getVarByName('T').X,"ns"])
+            writer.writerow(["Synthesis Time",synthesis_time,"s"])
             writer.writerow(["SrcID","DestID","Latency (ns)","Bandwidth (GB/s)","Chunks (ID:ns:ns)"])
             for src, dest in self.edges:
                 chunks = []

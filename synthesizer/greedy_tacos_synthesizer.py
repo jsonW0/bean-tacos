@@ -93,7 +93,7 @@ class GreedyTACOSSynthesizer:
                 chosen_edge, chosen_chunk = possible_matches[np.argmin(edge_delays)]
                 self.match(edge=chosen_edge, chunk=chosen_chunk)
     
-    def write_csv(self, filename: str) -> None:
+    def write_csv(self, filename: str, synthesis_time: float) -> None:
         edge_to_chunks = defaultdict(list)
         for edge,chunk,send_time,receive_time in self.event_history:
             edge_to_chunks[edge].append((chunk, send_time, receive_time))
@@ -105,6 +105,7 @@ class GreedyTACOSSynthesizer:
             writer.writerow(["Chunks Count",len(self.chunks)])
             writer.writerow(["Chunk Size",self.chunk_size])
             writer.writerow(["Collective Time",self.current_time,"ns"])
+            writer.writerow(["Synthesis Time",synthesis_time,"s"])
             writer.writerow(["SrcID","DestID","Latency (ns)","Bandwidth (GB/s)","Chunks (ID:ns:ns)"])
             for edge in self.edges:
                 src, dest = edge

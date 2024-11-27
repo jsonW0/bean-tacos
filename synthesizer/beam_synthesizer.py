@@ -40,7 +40,7 @@ class BeamSynthesizer:
             population_fitnesses = [self.compute_fitness(instance) for instance in population]
             self.instances = population[np.argpartition(population_fitnesses,-self.num_beams)[-self.num_beams:]]
     
-    def write_csv(self, filename: str) -> None:
+    def write_csv(self, filename: str, synthesis_time: float) -> None:
         solve_times = [instance.current_time for instance in self.instances]
         print(solve_times)
         best_instance = self.instances[np.argmin(solve_times)]
@@ -56,6 +56,7 @@ class BeamSynthesizer:
             writer.writerow(["Chunks Count",len(best_instance.chunks)])
             writer.writerow(["Chunk Size",best_instance.chunk_size])
             writer.writerow(["Collective Time",best_instance.current_time,"ns"])
+            writer.writerow(["Synthesis Time",synthesis_time,"s"])
             writer.writerow(["SrcID","DestID","Latency (ns)","Bandwidth (GB/s)","Chunks (ID:ns:ns)"])
             for edge in best_instance.edges:
                 src, dest = edge

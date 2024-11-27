@@ -34,10 +34,12 @@ def process_collective_algo(filename):
                 data["Chunk_Size"] = float(row[1])
             elif i == 4 and row[0].startswith("Collective Time"):
                 data["Collective_Time"] = float(row[1])
+            elif i == 5 and row[0].startswith("Collective Time"):
+                data["Synthesis_Time"] = float(row[1])
             # Read the connections data starting from the fifth line
-            elif i == 5 and row[0].startswith("SrcID"):
+            elif i == 6 and row[0].startswith("SrcID"):
                 header = row
-            elif i >= 6:
+            elif i >= 7:
                 src_id = int(row[0])
                 dest_id = int(row[1])
                 latency_ns = float(row[2])

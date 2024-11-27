@@ -1,9 +1,15 @@
 import os
+import sys
 import re
+import json
+import random
 import argparse
+import numpy as np
+import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 from runner.animate import animate_collective
+from helper.git_hash import get_git_hash
 from helper.timer import Timer
 from topology.topology import Topology
 from collective.collective import Collective
@@ -14,7 +20,6 @@ from synthesizer.greedy_tacos_synthesizer import GreedyTACOSSynthesizer
 from synthesizer.multiple_tacos_synthesizer import MultipleTACOSSynthesizer
 from synthesizer.beam_synthesizer import BeamSynthesizer
 from synthesizer.ilp_synthesizer import ILPSynthesizer
-
 
 def main():
     ####################################################################################################
@@ -28,17 +33,20 @@ def main():
     parser.add_argument("--save", action="store", type=str, required=False, help="Name to save output csv")
     parser.add_argument("--verbose", action="store_true", required=False, help="Verbose")
     parser.add_argument("--show", action="store_true", required=False, help="Show animation")
+    parser.add_argument("--seed", action="store", type=int, required=False, default=243, help="Random seed")
     # parser.add_argument("--num_trials", action="store", type=int, required=False, help="Number of trials")
     # Algorithm-specific arguments
     parser.add_argument("--num_beams", action="store", type=int, required=False, default=1, help="Beam width for beam search")
-    
     args = parser.parse_args()
-
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     if args.save is None:
         args.save = f"results/t={args.topology.replace('/','-').replace('.csv','')}_c={args.collective.replace('/','-').replace('.csv','')}_s={args.synthesizer}"
         if args.synthesizer=="multiple" or args.synthesizer=="":
             args.save += f"_{args.num_beams}"
     os.makedirs(args.save, exist_ok=True)
+    with open(f"{args.save}/args.json", "w") as f:
+        json.dump(vars(args)|{"git_hash":get_git_hash()}, f, indent=4)
     print(f"Saving to {args.save}")
     ####################################################################################################
     # TOPOLOGY
@@ -65,6 +73,8 @@ def main():
     ####################################################################################################
     # SYNTHESIZER
     ####################################################################################################
+    timer = Timer(name="Synthesizer")
+    timer.start()
     if args.synthesizer=="naive":
         synthesizer = NaiveSynthesizer(topology=topology,collective=collective)
         synthesizer.solve()
@@ -86,7 +96,9 @@ def main():
         synthesizer.write(args.save+"/result.sol")
     else:
         raise NotImplementedError(f"Synthesizer {args.synthesizer} not supported")
-    synthesizer.write_csv(args.save+"/result.csv")
+    timer.stop()
+    print("Synthesis Time:",timer.get_time(),"s")
+    synthesizer.write_csv(args.save+"/result.csv",synthesis_time=timer.get_time())
     animate_collective(args.save+"/result.csv", save_name=args.save+"/result.mp4", show=args.show)
 
 if __name__ == '__main__':
