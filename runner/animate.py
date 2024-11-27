@@ -67,13 +67,8 @@ def process_collective_algo(filename):
     return data
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--filename", required=True, type=str, help="The filename to process"
-    )
-    args = parser.parse_args()
-    results = process_collective_algo(args.filename)
+def animate_collective(filename: str, save_name: str=None, show=False):
+    results = process_collective_algo(filename)
     df = results["Connections"]
 
     df["Latency (ns)"] = df["Latency (ns)"].astype(float)
@@ -219,8 +214,16 @@ def main():
     ani = animation.FuncAnimation(
         fig, update, frames=np.linspace(0, max_ns*1.01, num=101), interval=50, repeat=False
     )
-    plt.show()
+    if save_name is not None:
+        ani.save(save_name)
+    if show:
+        plt.show()
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--filename", required=True, type=str, help="The filename to process"
+    )
+    args = parser.parse_args()
+    animate_collective(args.filename)
