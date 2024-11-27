@@ -11,6 +11,7 @@ from synthesizer.naive_synthesizer import NaiveSynthesizer
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
 from synthesizer.greedy_tacos_synthesizer import GreedyTACOSSynthesizer
 from synthesizer.multiple_tacos_synthesizer import MultipleTACOSSynthesizer
+from synthesizer.beam_synthesizer import BeamSynthesizer
 from synthesizer.ilp_synthesizer import ILPSynthesizer
 
 
@@ -79,7 +80,9 @@ def main():
         synthesizer.solve()
         synthesizer.write_csv(args.save+"/result.csv")
     elif args.synthesizer=="beam":
-        raise NotImplementedError()
+        synthesizer = BeamSynthesizer(topology=topology,collective=collective, num_beams=args.num_beams)
+        synthesizer.solve()
+        synthesizer.write_csv(args.save+"/result.csv")
     elif args.synthesizer=="ilp":
         synthesizer = ILPSynthesizer(topology=topology,collective=collective)
         synthesizer.solve(verbose=args.verbose,filename=args.save+"/result.lp",time_limit=60)
