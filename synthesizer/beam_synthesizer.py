@@ -10,16 +10,23 @@ from collective.collective import Collective
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
 
 class BeamSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576 / 976562.5, discretize=False, num_beams=1):
+    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576 / 976562.5, discretize=False, num_beams=1, fitness_type="chunk_count"):
         self.num_beams = num_beams
         self.instances = [
             TACOSSynthesizer(topology=topology, collective=collective, chunk_size=chunk_size, discretize=discretize) for _ in range(self.num_beams)
         ]
+        # self.finished_instances = []
+        self.fitness_type = fitness_type
 
     def compute_fitness(self, instance: TACOSSynthesizer) -> float:
         # A: total number of chunks each has
-        # B: sum of shortest path distances of precondition to postcondition
-        return 
+        # B: link utilization
+        # C: weighting by degree
+        # D: sum of shortest path distances of precondition to postcondition
+        if self.fitness_type=="chunk_count":
+            return sum(len(instance.get_chunks_at_node(node,instance.current_time)) for node in instance.nodes)
+        else:
+            raise ValueError(f"Fitness function not supported: {self.fitness_type}")
 
     def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> None:
         while not all(instance.satisfied() for instance in self.instances):
@@ -40,11 +47,15 @@ class BeamSynthesizer:
                                 instance_copy.match(edge=chosen_edge, chunk=chosen_chunk)
                         population.append(instance_copy)
             population_fitnesses = [self.compute_fitness(instance) for instance in population]
-            self.instances = population[np.argpartition(population_fitnesses,-self.num_beams)[-self.num_beams:]]
+            # print("F",population_fitnesses,np.argpartition(population_fitnesses,-self.num_beams)[-self.num_beams:])
+            self.instances = [population[i] for i in np.argpartition(population_fitnesses,-self.num_beams)[-self.num_beams:]]
     
+    @property
+    def current_time(self):
+        return np.min([instance.current_time for instance in self.instances])
+
     def write_csv(self, filename: str, synthesis_time: float) -> None:
         solve_times = [instance.current_time for instance in self.instances]
-        print(solve_times)
         best_instance = self.instances[np.argmin(solve_times)]
 
         edge_to_chunks = defaultdict(list)

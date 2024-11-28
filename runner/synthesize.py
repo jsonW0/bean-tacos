@@ -39,6 +39,7 @@ def main():
     # parser.add_argument("--num_trials", action="store", type=int, required=False, help="Number of trials")
     # Algorithm-specific arguments
     parser.add_argument("--num_beams", action="store", type=int, required=False, default=1, help="Beam width for beam search")
+    parser.add_argument("--fitness_type", action="store", type=str, required=False, default="chunk_count", help="Fitness function for beam serach")
     args = parser.parse_args()
     random.seed(args.seed)
     np.random.seed(args.seed)

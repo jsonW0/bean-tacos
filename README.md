@@ -56,7 +56,8 @@ NPUs Count,5
 Links Count,8
 Chunks Count,5
 Chunk Size,1048576,B
-Collective Time,3906248,ps
+Collective Time,3906248,ns
+Synthesis Time,3.14,s
 SrcID,DestID,Latency (ns),Bandwidth (GB/s),Chunks (ID:ps)
 0,1,0,1000,0:976562:0,4:1953124:976562
 0,2,0,2000,0:488281:0,4:1464843:976562
