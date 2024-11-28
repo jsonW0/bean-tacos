@@ -92,7 +92,10 @@ def animate_collective(filename: str, save_name: str=None, show=False):
         )
 
     # Initialize plot
-    pos = nx.spring_layout(G)
+    try:
+        pos = nx.nx_agraph.graphviz_layout(G)
+    except:
+        pos = nx.spring_layout(G)
     fig, ax = plt.subplots(figsize=(8, 6))
     nx.draw(G, pos, with_labels=True, ax=ax, node_size=500, font_size=10)
     edge_labels = {

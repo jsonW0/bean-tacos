@@ -3,6 +3,7 @@ import sys
 import re
 import json
 import random
+import signal
 import argparse
 import numpy as np
 import pandas as pd
@@ -20,6 +21,7 @@ from synthesizer.greedy_tacos_synthesizer import GreedyTACOSSynthesizer
 from synthesizer.multiple_tacos_synthesizer import MultipleTACOSSynthesizer
 from synthesizer.beam_synthesizer import BeamSynthesizer
 from synthesizer.ilp_synthesizer import ILPSynthesizer
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 def main():
     ####################################################################################################
@@ -33,7 +35,7 @@ def main():
     parser.add_argument("--save", action="store", type=str, required=False, help="Name to save output csv")
     parser.add_argument("--verbose", action="store_true", required=False, help="Verbose")
     parser.add_argument("--show", action="store_true", required=False, help="Show animation")
-    parser.add_argument("--seed", action="store", type=int, required=False, default=243, help="Random seed")
+    parser.add_argument("--seed", action="store", type=int, required=False, default=2430, help="Random seed")
     # parser.add_argument("--num_trials", action="store", type=int, required=False, help="Number of trials")
     # Algorithm-specific arguments
     parser.add_argument("--num_beams", action="store", type=int, required=False, default=1, help="Beam width for beam search")
@@ -97,6 +99,7 @@ def main():
     else:
         raise NotImplementedError(f"Synthesizer {args.synthesizer} not supported")
     timer.stop()
+    print("Collective Time:",synthesizer.current_time,"ns")
     print("Synthesis Time:",timer.get_time(),"s")
     synthesizer.write_csv(args.save+"/result.csv",synthesis_time=timer.get_time())
     animate_collective(args.save+"/result.csv", save_name=args.save+"/result.mp4", show=args.show)

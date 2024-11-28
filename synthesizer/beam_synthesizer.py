@@ -17,6 +17,8 @@ class BeamSynthesizer:
         ]
 
     def compute_fitness(self, instance: TACOSSynthesizer) -> float:
+        # A: total number of chunks each has
+        # B: sum of shortest path distances of precondition to postcondition
         return 
 
     def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> None:

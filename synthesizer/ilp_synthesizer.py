@@ -75,6 +75,10 @@ class ILPSynthesizer:
     def write(self, filename: str) -> None:
         self.model.write(filename)
     
+    @property
+    def current_time(self):
+        return self.model.getVarByName('T').X
+    
     def write_csv(self, filename: str, synthesis_time: float) -> None:
         with open(filename, mode="w") as f:
             writer = csv.writer(f)
@@ -82,7 +86,7 @@ class ILPSynthesizer:
             writer.writerow(["Links Count",len(self.edges)])
             writer.writerow(["Chunks Count",len(self.chunks)])
             writer.writerow(["Chunk Size",self.chunk_size])
-            writer.writerow(["Collective Time",self.model.getVarByName('T').X,"ns"])
+            writer.writerow(["Collective Time",self.current_time,"ns"])
             writer.writerow(["Synthesis Time",synthesis_time,"s"])
             writer.writerow(["SrcID","DestID","Latency (ns)","Bandwidth (GB/s)","Chunks (ID:ns:ns)"])
             for src, dest in self.edges:
@@ -93,6 +97,3 @@ class ILPSynthesizer:
                         receive_time = self.model.getVarByName(f"receive[{dest},{chunk}]").X
                         chunks.append((chunk,send_time,receive_time))
                 writer.writerow([src,dest,self.edges[(src,dest)]["alpha"],self.edges[(src,dest)]["beta"]]+[":".join(str(y) for y in x) for x in chunks])
-    
-    def write_constraints(self, filename: str) -> None:
-        pass
