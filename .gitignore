@@ -5,6 +5,7 @@ ignore/
 wandb/
 *.DS_Store
 *.ipynb
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
