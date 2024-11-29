@@ -212,19 +212,24 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
         raise ValueError(f"Invalid topology: {topology}")
 
 
-def extract_synthesis_time(output: str) -> Optional[int]:
+import re
+from typing import Optional
+
+def extract_synthesis_time(output: str) -> Optional[float]:
     """
-    Extracts the synthesized collective time in picoseconds from the command output.
+    Extracts the synthesis time in seconds from the file specified by path output
 
     Args:
-        output (str): The standard output from the shell command.
+        output (str): The output from the command.
 
     Returns:
-        Optional[int]: The extracted synthesis time in ps, or None if not found.
+        Optional[float]: The extracted synthesis time in seconds, or None if not found.
     """
-    match = re.search(r"Synthesized Collective Time:\s+(\d+)\s+ps", output)
+    with open(output, "r") as f:
+        output = f.read()
+    match = re.search(r"Synthesis Time,([\d\.eE+-]+),s", output)
     if match:
-        return int(match.group(1))
+        return float(match.group(1))
     else:
         return None
 
@@ -283,35 +288,41 @@ def get_file_parameters(filename: str):
         parameters[filename[filename.rfind("_", 0, index) + 1 : index]] = value
     return parameters
 
+import os
+import time
+import csv
+from typing import List
 
-def run_tacos_commands(
+def run_synthesis_commands(
     params_list: List[str], input_dir: str, output_csv: str = "ring_results.csv"
 ) -> None:
     """
-    Executes tacos.sh commands for each CSV file in the input directory, extracts synthesis times,
+    Executes synthesize.py commands for each CSV file in the input directory, extracts synthesis times,
     and writes the results to an output CSV file.
 
     Args:
-        params: dictionary mapping parameteres to their list of diff values
+        params_list (List[str]): List of parameter names to include in the CSV.
         input_dir (str): Directory containing input CSV files.
         output_csv (str): Path to the output results CSV file.
     """
     params_list.append("Algorithm")
-    params_list.append("Synthesis Time (ps)")
+    params_list.append("Synthesis Time (s)")
     algorithms = [
-        {"name": "random", "args": ["--run"]},
-        {"name": "greedy", "args": ["--greedy", "--run"]},
-        {"name": "multiple_5", "args": ["--multiple", "5", "--run"]},
+        {"name": "naive", "args": ["--synthesizer", "naive"]},
+        {"name": "tacos", "args": ["--synthesizer", "tacos"]},
+        {"name": "greedy_tacos", "args": ["--synthesizer", "greedy_tacos"]},
+        {"name": "multiple_tacos", "args": ["--synthesizer", "multiple_tacos", "--num_beams", "5"]},
+        {"name": "beam", "args": ["--synthesizer", "beam", "--num_beams", "5"]},
+        {"name": "ilp", "args": ["--synthesizer", "ilp"]},
     ]
 
     now_str = time.strftime("%Y%m%d-%H%M%S")
-    os.mkdir(now_str)
+    os.makedirs(now_str, exist_ok=True)
     output_csv = os.path.join(now_str, output_csv)
 
     with open(output_csv, "w", newline="") as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(params_list)
-        print(f"Results will be written to '{output_csv}'.\n")
         print(sorted(os.listdir(input_dir)))
         print("input_dir: ", input_dir)
         for filename in sorted(os.listdir(input_dir)):
@@ -319,21 +330,24 @@ def run_tacos_commands(
                 continue
 
             filepath = os.path.join(input_dir, filename)
+            print("file path is"    , filepath)
             file_params = get_file_parameters(filename)
-            # print(f"Processing File: {filename} | Group Size: {group_size} | Bad Bandwidth Proportion: {bad_bandwidth_proportion} | Bad Magnitude: {magnitude}")
 
             for algo in algorithms:
                 algo_name = algo["name"]
                 algo_args = algo["args"]
 
-                if algo_name == "multiple_5":
+                if "multiple_tacos" in algo_name:
                     synthesis_times = []
                     for run in range(1, 6):
                         command = [
-                            "./tacos.sh",
-                            "--verbose",
-                            "--file",
+                            "python3",
+                            "-m",
+                            "runner.synthesize",
+                            "--topology",
                             filepath,
+                            "--collective",
+                            "all_gather",
                         ] + algo_args
                         print(f"  Running '{algo_name}' - Attempt {run}/5")
                         stdout, stderr = run_command(command)
@@ -344,10 +358,10 @@ def run_tacos_commands(
                             )
                             continue
 
-                        synthesis_time = extract_synthesis_time(stdout)
+                        synthesis_time = extract_synthesis_time(output_csv)
                         if synthesis_time is not None:
                             synthesis_times.append(synthesis_time)
-                            print(f"    Extracted Synthesis Time: {synthesis_time} ps")
+                            print(f"    Extracted Synthesis Time: {synthesis_time} s")
                         else:
                             print(
                                 f"    Synthesis time not found in output for '{algo_name}' on '{filename}'."
@@ -362,7 +376,7 @@ def run_tacos_commands(
                         row.append(best_time)
                         csvwriter.writerow(row)
                         print(
-                            f"    Best Synthesis Time for '{algo_name}': {best_time} ps\n"
+                            f"    Best Synthesis Time for '{algo_name}': {best_time} s\n"
                         )
                     else:
                         print(
@@ -370,10 +384,13 @@ def run_tacos_commands(
                         )
                 else:
                     command = [
-                        "./tacos.sh",
-                        "--verbose",
-                        "--file",
+                        "python3",
+                        "-m",
+                        "runner.synthesize",
+                        "--topology",
                         filepath,
+                        "--collective",
+                        "all_gather",
                     ] + algo_args
                     print(f"  Running '{algo_name}'")
                     stdout, stderr = run_command(command)
@@ -393,7 +410,7 @@ def run_tacos_commands(
                         row.append(synthesis_time)
                         csvwriter.writerow(row)
                         print(
-                            f"    Extracted Synthesis Time for '{algo_name}': {synthesis_time} ps\n"
+                            f"    Extracted Synthesis Time for '{algo_name}': {synthesis_time} s\n"
                         )
                     else:
                         print(
@@ -418,7 +435,7 @@ def main(params: Dict[str, List[Any]]) -> None:
     output_csv = directory.replace("csvs/", "") + ".csv"
     create_csv_files(directory, params)
     # run_tacos_commands(directory, f"ring_results_g{group_sizes}_b{bad_bandwidth_proportions}_m{bad_magnitudes}.csv")
-    # run_tacos_commands(list(params.keys()), directory, output_csv)
+    run_synthesis_commands(list(params.keys()), directory, output_csv)
     print("Directory", directory)
 
     # directory = f"ringcsvs_g{gss}_b{bbps}_m{bms}"
