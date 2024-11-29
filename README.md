@@ -11,6 +11,7 @@ Inspired by state-of-the-art approaches in LLM decoding, our project aims to dev
 git clone https://github.com/jsonW0/tacos-ilp.git
 cd tacos-ilp
 conda env create -f environment.yml
+conda activate tacos
 ```
 The ILP formulation requires `gurobi`. Follow the [directions](https://www.gurobi.com/features/academic-named-user-license/) to get a free academic named user license. Ultimately, you should run `grbgetkey (some-key-id)` (after installing via conda).
 
