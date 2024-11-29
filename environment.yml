@@ -1,8 +1,9 @@
 name: tacos
 channels:
+  - conda-forge
   - defaults
   - gurobi
-  - conda-forge
+
 dependencies:
   - python=3.9.9
   - gurobi
