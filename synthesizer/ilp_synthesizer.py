@@ -80,7 +80,7 @@ class ILPSynthesizer:
         return self.model.getVarByName('T').X
     
     def write_csv(self, filename: str, synthesis_time: float) -> None:
-        with open(filename, mode="w") as f:
+        with open(filename, mode="w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["NPUs Count",len(self.nodes)])
             writer.writerow(["Links Count",len(self.edges)])

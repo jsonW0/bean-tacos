@@ -217,7 +217,7 @@ from typing import Optional
 
 def extract_synthesis_time(output: str) -> Optional[float]:
     """
-    Extracts the synthesis time in seconds from the file specified by path output
+    Extracts the synthesis time in seconds from the output string
 
     Args:
         output (str): The output from the command.
@@ -225,11 +225,9 @@ def extract_synthesis_time(output: str) -> Optional[float]:
     Returns:
         Optional[float]: The extracted synthesis time in seconds, or None if not found.
     """
-    with open(output, "r") as f:
-        output = f.read()
-    match = re.search(r"Synthesis Time,([\d\.eE+-]+),s", output)
+    match = re.search(r"Synthesis Time:\s*([\d\.eE+-]+)\s*s", output)
     if match:
-        return float(match.group(1))
+        return match.group(1)
     else:
         return None
 
@@ -300,7 +298,7 @@ def get_file_parameters(filepath: str):
     filepath = filepath[filepath.find("_") + 1: filepath.rfind("/")]
     
     # Regex pattern to extract both parameter names and values
-    label_pattern = r"(\w+)\[(.*?)\]"
+    label_pattern = r"_?(\w+)\[(.*?)\]"
     matches = re.findall(label_pattern, filepath)
     
     # Convert matches into a dictionary
@@ -313,7 +311,7 @@ import csv
 from typing import List
 
 def run_synthesis_commands(
-    params_list: List[str], input_dir: str, output_csv: str = "ring_results.csv"
+    params_list: List[str], input_dir: str, synthesis_times_csv: str = "synthesis_times.csv"
 ) -> None:
     """
     Executes synthesize.py commands for each CSV file in the input directory, extracts synthesis times,
@@ -336,7 +334,7 @@ def run_synthesis_commands(
     ]
 
 
-    with open(output_csv, "w", newline="") as csvfile:
+    with open(synthesis_times_csv, "w", newline="") as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(params_list)
         print(sorted(os.listdir(input_dir)))
@@ -374,7 +372,7 @@ def run_synthesis_commands(
                             )
                             continue
 
-                        synthesis_time = extract_synthesis_time(output_csv)
+                        synthesis_time = extract_synthesis_time(stdout)
                         if synthesis_time is not None:
                             synthesis_times.append(synthesis_time)
                             print(f"    Extracted Synthesis Time: {synthesis_time} s")
@@ -448,7 +446,7 @@ def main(params: Dict[str, List[Any]]) -> None:
     for key, value in params.items():
         if key != "topology":
             directory += f"_{key}{value}"
-    output_csv = directory.replace("csvs/", "") + ".csv"
+    output_csv = os.path.join(directory, "synthesis_times.csv")
     create_csv_files(directory, params)
     # run_tacos_commands(directory, f"ring_results_g{group_sizes}_b{bad_bandwidth_proportions}_m{bad_magnitudes}.csv")
     run_synthesis_commands(list(params.keys()), directory, output_csv)

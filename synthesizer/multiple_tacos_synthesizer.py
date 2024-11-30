@@ -27,7 +27,7 @@ class MultipleTACOSSynthesizer:
         for edge,chunk,send_time,receive_time in best_instance.event_history:
             edge_to_chunks[edge].append((chunk, send_time, receive_time))
 
-        with open(filename, mode="w") as f:
+        with open(filename, mode="w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["NPUs Count",len(best_instance.nodes)])
             writer.writerow(["Links Count",len(best_instance.edges)])

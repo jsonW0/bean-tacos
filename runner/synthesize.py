@@ -48,7 +48,7 @@ def main():
         if args.synthesizer=="multiple" or args.synthesizer=="":
             args.save += f"_{args.num_beams}"
     os.makedirs(args.save, exist_ok=True)
-    with open(f"{args.save}/args.json", "w") as f:
+    with open(f"{args.save}/args.json", "w", newline="") as f:
         json.dump(vars(args)|{"git_hash":get_git_hash()}, f, indent=4)
     print(f"Saving to {args.save}")
     ####################################################################################################
