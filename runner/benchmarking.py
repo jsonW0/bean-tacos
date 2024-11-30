@@ -340,7 +340,7 @@ def run_synthesis_commands(
         print(sorted(os.listdir(input_dir)))
         print("input_dir: ", input_dir)
         for filename in sorted(os.listdir(input_dir)):
-            if not filename.endswith(".csv"):
+            if not filename.endswith(".csv") or filename == "synthesis_results.csv" or filename == "collective_results.csv":
                 continue
 
             filepath = os.path.join(input_dir, filename)
@@ -351,85 +351,39 @@ def run_synthesis_commands(
                 algo_name = algo["name"]
                 algo_args = algo["args"]
 
-                if "multiple_tacos" in algo_name:
-                    synthesis_times = []
-                    for run in range(1, 6):
-                        command = [
-                            "python",
-                            "-m",
-                            "runner.synthesize",
-                            "--topology",
-                            filepath,
-                            "--collective",
-                            "all_gather",
-                        ] + algo_args
-                        print(f"  Running '{algo_name}' - Attempt {run}/5")
-                        stdout, stderr = run_command(command)
+                command = [
+                    "python",
+                    "-m",
+                    "runner.synthesize",
+                    "--topology",
+                    filepath,
+                    "--collective",
+                    "all_gather",
+                ] + algo_args
+                print(f"  Running '{algo_name}'")
+                stdout, stderr = run_command(command)
 
-                        if stdout is None:
-                            print(
-                                f"    Failed to execute '{algo_name}' on '{filename}'. Skipping this run."
-                            )
-                            continue
+                if stdout is None:
+                    print(
+                        f"    Failed to execute '{algo_name}' on '{filename}'. Skipping.\n"
+                    )
+                    continue
 
-                        synthesis_time = extract_synthesis_time(stdout)
-                        if synthesis_time is not None:
-                            synthesis_times.append(synthesis_time)
-                            print(f"    Extracted Synthesis Time: {synthesis_time} s")
-                        else:
-                            print(
-                                f"    Synthesis time not found in output for '{algo_name}' on '{filename}'."
-                            )
-
-                    if synthesis_times:
-                        best_time = min(synthesis_times)
-                        row = []
-                        for key in file_params:
-                            row.append(file_params[key])
-                        row.append(algo_name)
-                        row.append(best_time)
-                        csvwriter.writerow(row)
-                        print(
-                            f"    Best Synthesis Time for '{algo_name}': {best_time} s\n"
-                        )
-                    else:
-                        print(
-                            f"    No valid synthesis times extracted for '{algo_name}' on '{filename}'.\n"
-                        )
+                synthesis_time = extract_synthesis_time(stdout)
+                if synthesis_time is not None:
+                    row = []
+                    for key in file_params:
+                        row.append(file_params[key])
+                    row.append(algo_name)
+                    row.append(synthesis_time)
+                    csvwriter.writerow(row)
+                    print(
+                        f"    Extracted Synthesis Time for '{algo_name}': {synthesis_time} s\n"
+                    )
                 else:
-                    command = [
-                        "python",
-                        "-m",
-                        "runner.synthesize",
-                        "--topology",
-                        filepath,
-                        "--collective",
-                        "all_gather",
-                    ] + algo_args
-                    print(f"  Running '{algo_name}'")
-                    stdout, stderr = run_command(command)
-
-                    if stdout is None:
-                        print(
-                            f"    Failed to execute '{algo_name}' on '{filename}'. Skipping.\n"
-                        )
-                        continue
-
-                    synthesis_time = extract_synthesis_time(stdout)
-                    if synthesis_time is not None:
-                        row = []
-                        for key in file_params:
-                            row.append(file_params[key])
-                        row.append(algo_name)
-                        row.append(synthesis_time)
-                        csvwriter.writerow(row)
-                        print(
-                            f"    Extracted Synthesis Time for '{algo_name}': {synthesis_time} s\n"
-                        )
-                    else:
-                        print(
-                            f"    Synthesis time not found in output for '{algo_name}' on '{filename}'.\n"
-                        )
+                    print(
+                        f"    Synthesis time not found in output for '{algo_name}' on '{filename}'.\n"
+                    )
 
     print("All commands executed and results recorded.\n")
 

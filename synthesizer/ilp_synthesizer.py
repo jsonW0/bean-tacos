@@ -70,8 +70,11 @@ class ILPSynthesizer:
         self.model.Params.OutputFlag = verbose
         if filename is not None:
             self.model.write(filename)
-        self.model.optimize()
-
+        try:
+            self.model.optimize()
+        except:
+            raise Exception("Gurobi cannot solve this ILP!")
+        
     def write(self, filename: str) -> None:
         self.model.write(filename)
     

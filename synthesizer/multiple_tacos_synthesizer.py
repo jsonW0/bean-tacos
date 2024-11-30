@@ -17,6 +17,10 @@ class MultipleTACOSSynthesizer:
     def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> None:
         for i in range(len(self.instances)):
             self.instances[i].solve()
+
+    @property
+    def current_time(self):
+        return np.min([instance.current_time for instance in self.instances])
     
     def write_csv(self, filename: str, synthesis_time: float) -> None:
         solve_times = [instance.current_time for instance in self.instances]
