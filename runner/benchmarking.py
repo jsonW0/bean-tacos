@@ -265,27 +265,46 @@ def run_command(
         return None, None
 
 
-def get_file_parameters(filename: str):
+
+def parse_list(value: str):
     """
-    Extracts group_size and bad_bandwidth_proportion from the filename.
-    Assumes that the filename follows the pattern 'ring_<group_size>_<bad_bandwidth_proportion>.csv'.
+    Converts a string containing a list-like value into a list of the appropriate types.
 
     Args:
-        filename (str): The name of the file.
+        value (str): The string to parse (e.g., "10, 20.5, hello").
 
     Returns:
-        Dict[str, List[Any]]: A dictionary containing the extracted parameters.
+        list: A list of integers, floats, or strings, as appropriate.
     """
-    # extracting the existing parameters using _ as essentially a delimiter
-    pattern = r"-?\d+\.?\d*"
-    # extracts the parameter value as well as the starting index of the match for each match
-    matches = [
-        (match.group(), match.start()) for match in re.finditer(pattern, filename)
-    ]
-    # constructing the parameters dictionary
-    parameters = {}
-    for value, index in matches:
-        parameters[filename[filename.rfind("_", 0, index) + 1 : index]] = value
+    import ast
+    def convert_element(element):
+        element = element.strip()
+        try:
+            return ast.literal_eval(element)
+        except (ValueError, SyntaxError):
+            return element  # Fallback to string if no valid conversion
+    
+    return [convert_element(x) for x in value.split(",")]
+
+def get_file_parameters(filepath: str):
+    """
+    Extracts labeled parameters enclosed in brackets [] from a filepath string.
+
+    Args:
+        filepath (str): The path of the file.
+
+    Returns:
+        Dict[str, str]: A dictionary of parameter labels and their extracted values.
+    """
+    filepath = filepath.replace("\\", "/")
+    filepath = filepath[filepath.find("_") + 1: filepath.rfind("/")]
+    
+    # Regex pattern to extract both parameter names and values
+    label_pattern = r"(\w+)\[(.*?)\]"
+    matches = re.findall(label_pattern, filepath)
+    
+    # Convert matches into a dictionary
+    parameters = {label: parse_list(value) for label, value in matches}
     return parameters
 
 import os
@@ -316,9 +335,6 @@ def run_synthesis_commands(
         {"name": "ilp", "args": ["--synthesizer", "ilp"]},
     ]
 
-    now_str = time.strftime("%Y%m%d-%H%M%S")
-    os.makedirs(now_str, exist_ok=True)
-    output_csv = os.path.join(now_str, output_csv)
 
     with open(output_csv, "w", newline="") as csvfile:
         csvwriter = csv.writer(csvfile)
@@ -331,7 +347,7 @@ def run_synthesis_commands(
 
             filepath = os.path.join(input_dir, filename)
             print("file path is"    , filepath)
-            file_params = get_file_parameters(filename)
+            file_params = get_file_parameters(filepath)
 
             for algo in algorithms:
                 algo_name = algo["name"]
@@ -341,7 +357,7 @@ def run_synthesis_commands(
                     synthesis_times = []
                     for run in range(1, 6):
                         command = [
-                            "python3",
+                            "python",
                             "-m",
                             "runner.synthesize",
                             "--topology",
@@ -384,7 +400,7 @@ def run_synthesis_commands(
                         )
                 else:
                     command = [
-                        "python3",
+                        "python",
                         "-m",
                         "runner.synthesize",
                         "--topology",
