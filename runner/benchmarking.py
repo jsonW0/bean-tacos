@@ -305,20 +305,28 @@ def get_file_parameters(filepath: str):
     Extracts labeled parameters enclosed in brackets [] from a filepath string.
 
     Args:
-        filepath (str): The path of the file.
+        filepath (str): The path of the file. Directory has the names of the parameters. 
+                        File name has the values of the parameters.
 
     Returns:
         Dict[str, str]: A dictionary of parameter labels and their extracted values.
     """
+  
     filepath = filepath.replace("\\", "/")
-    filepath = filepath[filepath.find("_") + 1: filepath.rfind("/")]
-    
-    # Regex pattern to extract both parameter names and values
+    label_directory = filepath[filepath.find("_") + 1: filepath.rfind("/")]
+ 
+    # Regex pattern to extract parameter names from directory path
     label_pattern = r"_?(\w+)\[(.*?)\]"
-    matches = re.findall(label_pattern, filepath)
+    label_matches = list(re.finditer(label_pattern, label_directory))
+    labels = [label.group(1) for label in label_matches]
+    
+    # Regex pattern to extract parameter values from file name 
+    value_pattern = r"_([0-9.]+)"
+    value_matches = list(re.finditer(value_pattern, filepath[filepath.rfind("/") + 1:filepath.rfind(".csv")]))
+    values = [value.group(1) for value in value_matches]
     
     # Convert matches into a dictionary
-    parameters = {label: parse_list(value) for label, value in matches}
+    parameters = {label: value for label, value in zip(labels, values)}
     return parameters
 
 import os
@@ -360,7 +368,7 @@ def run_synthesis_commands(
         print(sorted(os.listdir(input_dir)))
         print("input_dir: ", input_dir)
         for filename in sorted(os.listdir(input_dir)):
-            if not filename.endswith(".csv") or "synthesis_results.csv" in filename or "collective_results.csv" in filename:
+            if not filename.endswith(".csv") or "synthesis_times.csv" in filename or "collective_times.csv" in filename:
                 continue
 
             filepath = os.path.join(input_dir, filename)
