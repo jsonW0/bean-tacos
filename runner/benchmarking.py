@@ -231,6 +231,22 @@ def extract_synthesis_time(output: str) -> Optional[float]:
     else:
         return None
 
+def extract_collective_time(output: str) -> Optional[float]:
+    """
+    Extracts the collective time in seconds from the output string
+
+    Args:
+        output (str): The output from the command.
+
+    Returns:
+        Optional[float]: The extracted collective time in seconds, or None if not found.
+    """
+    match = re.search(r"Collective Time:\s*([\d\.eE+-]+)\s*ns", output)
+    if match:
+        return match.group(1)
+    else:
+        return None
+
 
 def run_command(
     command: List[str], cwd: Optional[str] = None
@@ -311,7 +327,8 @@ import csv
 from typing import List
 
 def run_synthesis_commands(
-    params_list: List[str], input_dir: str, synthesis_times_csv: str = "synthesis_times.csv"
+    params_list: List[str], input_dir: str, synthesis_times_csv: str = "synthesis_times.csv", 
+    collective_times_csv: str = "collective_times.csv"
 ) -> None:
     """
     Executes synthesize.py commands for each CSV file in the input directory, extracts synthesis times,
@@ -334,17 +351,20 @@ def run_synthesis_commands(
     ]
 
 
-    with open(synthesis_times_csv, "w", newline="") as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(params_list)
+    with open(synthesis_times_csv, "w", newline="") as synthesis_file, \
+        open(collective_times_csv, "w", newline="") as collective_file:
+        synthesis_writer = csv.writer(synthesis_file)
+        synthesis_writer.writerow(params_list)
+        collective_writer = csv.writer(collective_file)
+        collective_writer.writerow(params_list)
         print(sorted(os.listdir(input_dir)))
         print("input_dir: ", input_dir)
         for filename in sorted(os.listdir(input_dir)):
-            if not filename.endswith(".csv") or filename == "synthesis_results.csv" or filename == "collective_results.csv":
+            if not filename.endswith(".csv") or "synthesis_results.csv" in filename or "collective_results.csv" in filename:
                 continue
 
             filepath = os.path.join(input_dir, filename)
-            print("file path is"    , filepath)
+            print("file path is", filepath)
             file_params = get_file_parameters(filepath)
 
             for algo in algorithms:
@@ -370,19 +390,34 @@ def run_synthesis_commands(
                     continue
 
                 synthesis_time = extract_synthesis_time(stdout)
+                collective_time = extract_collective_time(stdout)
                 if synthesis_time is not None:
                     row = []
                     for key in file_params:
                         row.append(file_params[key])
                     row.append(algo_name)
                     row.append(synthesis_time)
-                    csvwriter.writerow(row)
+                    synthesis_writer.writerow(row)
                     print(
                         f"    Extracted Synthesis Time for '{algo_name}': {synthesis_time} s\n"
                     )
                 else:
                     print(
                         f"    Synthesis time not found in output for '{algo_name}' on '{filename}'.\n"
+                    )
+                if collective_time is not None:
+                    row = []
+                    for key in file_params:
+                        row.append(file_params[key])
+                    row.append(algo_name)
+                    row.append(collective_time)
+                    collective_writer.writerow(row)
+                    print(
+                        f"    Extracted Collective Time for '{algo_name}': {collective_time} ns\n"
+                    )
+                else: 
+                    print(
+                        f"    Collective Time for '{algo_name}': {collective_time} ns\n"
                     )
 
     print("All commands executed and results recorded.\n")
@@ -400,10 +435,11 @@ def main(params: Dict[str, List[Any]]) -> None:
     for key, value in params.items():
         if key != "topology":
             directory += f"_{key}{value}"
-    output_csv = os.path.join(directory, "synthesis_times.csv")
+    synthesis_csv = os.path.join(directory, "synthesis_times.csv")
+    collective_csv = os.path.join(directory, "collective_times.csv")
     create_csv_files(directory, params)
     # run_tacos_commands(directory, f"ring_results_g{group_sizes}_b{bad_bandwidth_proportions}_m{bad_magnitudes}.csv")
-    run_synthesis_commands(list(params.keys()), directory, output_csv)
+    run_synthesis_commands(list(params.keys()), directory, synthesis_csv, collective_csv)
     print("Directory", directory)
 
     # directory = f"ringcsvs_g{gss}_b{bbps}_m{bms}"
