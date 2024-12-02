@@ -363,6 +363,8 @@ def run_synthesis_commands(
         open(collective_times_csv, "w", newline="") as collective_file:
         synthesis_writer = csv.writer(synthesis_file)
         synthesis_writer.writerow(params_list)
+        params_list.pop()
+        params_list.append("Collective Time (ns)")
         collective_writer = csv.writer(collective_file)
         collective_writer.writerow(params_list)
         print(sorted(os.listdir(input_dir)))
