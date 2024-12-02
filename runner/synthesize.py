@@ -38,7 +38,7 @@ def main():
     parser.add_argument("--gen_video", action="store_true", required=False, help="Generate video")
     parser.add_argument("--show", action="store_true", required=False, help="Show animation")
     parser.add_argument("--seed", action="store", type=int, required=False, default=2430, help="Random seed")
-    # parser.add_argument("--num_trials", action="store", type=int, required=False, help="Number of trials")
+    parser.add_argument("--num_trials", action="store", type=int, required=False, default=1, help="Number of trials")
     # Algorithm-specific arguments
     parser.add_argument("--num_beams", action="store", type=int, required=False, default=1, help="Beam width for beam search")
     parser.add_argument("--fitness_type", action="store", type=str, required=False, default="chunk_count", help="Fitness function for beam serach")
@@ -76,35 +76,36 @@ def main():
     ####################################################################################################
     # SYNTHESIZER
     ####################################################################################################
-    timer = Timer(name="Synthesizer")
-    timer.start()
-    if args.synthesizer=="naive":
-        synthesizer = NaiveSynthesizer(topology=topology,collective=collective)
-        synthesizer.solve()
-    elif args.synthesizer=="tacos":
-        synthesizer = TACOSSynthesizer(topology=topology,collective=collective)
-        synthesizer.solve()
-    elif args.synthesizer=="greedy_tacos":
-        synthesizer = GreedyTACOSSynthesizer(topology=topology,collective=collective)
-        synthesizer.solve()
-    elif args.synthesizer=="multiple_tacos":
-        synthesizer = MultipleTACOSSynthesizer(topology=topology,collective=collective, num_beams=args.num_beams)
-        synthesizer.solve()
-    elif args.synthesizer=="beam":
-        synthesizer = BeamSynthesizer(topology=topology,collective=collective, num_beams=args.num_beams)
-        synthesizer.solve()
-    elif args.synthesizer=="ilp":
-        synthesizer = ILPSynthesizer(topology=topology,collective=collective)
-        synthesizer.solve(verbose=args.verbose,filename=os.path.join(args.save, "result.lp"),time_limit=120)
-        synthesizer.write(os.path.join(args.save, "result.sol"))
-    else:
-        raise NotImplementedError(f"Synthesizer {args.synthesizer} not supported")
-    timer.stop()
-    print("Collective Time:",synthesizer.current_time,"ns")
-    print("Synthesis Time:",timer.get_time(),"s")
-    synthesizer.write_csv(os.path.join(args.save, "result.csv"),synthesis_time=timer.get_time())
-    if args.gen_video:
-        animate_collective(os.path.join(args.save, "result.csv"), save_name=os.path.join(args.save, "result.mp4"), show=args.show)
+    for trial in range(1,args.num_trials+1):
+        timer = Timer(name="Synthesizer")
+        timer.start()
+        if args.synthesizer=="naive":
+            synthesizer = NaiveSynthesizer(topology=topology,collective=collective)
+            synthesizer.solve()
+        elif args.synthesizer=="tacos":
+            synthesizer = TACOSSynthesizer(topology=topology,collective=collective)
+            synthesizer.solve()
+        elif args.synthesizer=="greedy_tacos":
+            synthesizer = GreedyTACOSSynthesizer(topology=topology,collective=collective)
+            synthesizer.solve()
+        elif args.synthesizer=="multiple_tacos":
+            synthesizer = MultipleTACOSSynthesizer(topology=topology,collective=collective, num_beams=args.num_beams)
+            synthesizer.solve()
+        elif args.synthesizer=="beam":
+            synthesizer = BeamSynthesizer(topology=topology,collective=collective, num_beams=args.num_beams)
+            synthesizer.solve()
+        elif args.synthesizer=="ilp":
+            synthesizer = ILPSynthesizer(topology=topology,collective=collective)
+            synthesizer.solve(verbose=args.verbose,filename=os.path.join(args.save, f"result_{trial}.lp"),time_limit=120)
+            synthesizer.write(os.path.join(args.save, f"result_{trial}.sol"))
+        else:
+            raise NotImplementedError(f"Synthesizer {args.synthesizer} not supported")
+        timer.stop()
+        print("Collective Time:",synthesizer.current_time,"ns")
+        print("Synthesis Time:",timer.get_time(),"s")
+        synthesizer.write_csv(os.path.join(args.save, f"result_{trial}.csv"),synthesis_time=timer.get_time())
+        if args.gen_video:
+            animate_collective(os.path.join(args.save, f"result_{trial}.csv"), save_name=os.path.join(args.save, f"result_{trial}.mp4"), show=args.show)
 
 if __name__ == '__main__':
     main()

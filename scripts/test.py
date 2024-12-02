@@ -37,7 +37,7 @@ def main():
     central_filename = "results/result.csv"
     with open(central_filename, mode="w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Topology","Collective","Synthesizer","Num Beams","Collective Time","Synthesizer Time"])
+        writer.writerow(["Topology","Collective","Synthesizer","Num Beams","Trial","Collective Time","Synthesizer Time"])
 
         topologies = ["grid_w=2_h=4_alpha=0_beta=1","grid_w=1_h=3_alpha=0_beta=1"]
         collectives = ["all_gather"]
@@ -51,15 +51,26 @@ def main():
                             "--topology", topology, 
                             "--collective", collective,
                             "--synthesizer", synthesizer,
-                            "--num_beams", str(num_beams),
-                            # "--gen_video"
+                            # "--gen_video",
                         ]
+                        if synthesizer in {"multiple_tacos", "beam"}:
+                            command.extend([
+                                "--num_beams", str(num_beams),
+                            ])
+                        if synthesizer in {"naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"}:
+                            num_trials = 5
+                            command.extend([
+                                "--num_trials", str(num_trials),
+                            ])
+                        else:
+                            num_trials = 1
                         print(f"Running: {' '.join(command)}")
                         run_command(command)
-                        collective_time, synthesizer_time = parse_csv(os.path.join("results",f"t={topology}_c={collective}_s={synthesizer}","result.csv"))
                         finish = time.perf_counter()
-                        print(f"\tColl={collective_time:.2f}_Synth={synthesizer_time:.2f}_Clock={finish-begin:.2f}")
-                        writer.writerow([topology, collective, synthesizer, num_beams, collective_time, synthesizer_time])
+                        for trial in range(1,num_trials+1):
+                            collective_time, synthesizer_time = parse_csv(os.path.join("results",f"t={topology}_c={collective}_s={synthesizer}",f"result_{trial}.csv"))
+                            writer.writerow([topology, collective, synthesizer, num_beams, collective_time, synthesizer_time])
+                            print(f"\tColl={collective_time:.2f}_Synth={synthesizer_time:.2f}_Clock={finish-begin:.2f}")
 
 if __name__ == "__main__":
     start = time.perf_counter()
