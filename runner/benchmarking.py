@@ -170,7 +170,7 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
             params["world_size"], params["bandwidth_ratio"]
         ):
             csv_filename = params_to_file_name(
-                output_dir, topology, [world_size, b_ratio]
+                output_dir, topology, [str(world_size), str(b_ratio)]
             )
             with open(csv_filename, "w", newline="") as csvfile:
                 csvwriter = csv.writer(csvfile)
@@ -187,7 +187,7 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
             params["slow_link_proportion"],
         ):
             csv_filename = params_to_file_name(
-                output_dir, topology, [world_size, b_ratio, slow_prop]
+                output_dir, topology, [str(world_size), str(b_ratio), str(slow_prop)]
             )
             with open(csv_filename, "w", newline="") as csvfile:
                 csvwriter = csv.writer(csvfile)
@@ -203,7 +203,7 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
             params["layer_sizes"], params["bm"], params["bbp"]
         ):
             csv_filename = params_to_file_name(
-                output_dir, topology, [layer_sizes, b_ratio, slow_prop], output_dir
+                output_dir, topology, [str(layer_sizes), str(b_ratio), str(slow_prop)], output_dir
             )
             with open(csv_filename, "w", newline="") as csvfile:
                 csvwriter = csv.writer(csvfile)
