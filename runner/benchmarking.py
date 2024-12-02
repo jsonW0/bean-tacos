@@ -139,7 +139,7 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
     print(f"CSV files will be generated in the '{output_dir}' directory.")
 
     assert "topology" in params
-    assert params["topology"] in ["ring", "outin", "hierarchical"]
+    assert params["topology"] in ["ring", "outin", "grid", "hierarchical"]
 
     topology = params["topology"]
     del params["topology"]
