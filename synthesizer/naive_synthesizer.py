@@ -94,7 +94,7 @@ class NaiveSynthesizer:
         for edge,chunk,send_time,receive_time in self.event_history:
             edge_to_chunks[edge].append((chunk, send_time, receive_time))
 
-        with open(filename, mode="w") as f:
+        with open(filename, mode="w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["NPUs Count",len(self.nodes)])
             writer.writerow(["Links Count",len(self.edges)])

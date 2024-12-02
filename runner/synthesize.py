@@ -34,6 +34,7 @@ def main():
     parser.add_argument("--synthesizer", action="store", type=str, required=True, help="Name of synthesis algorithm")
     parser.add_argument("--save", action="store", type=str, required=False, help="Name to save output csv")
     parser.add_argument("--verbose", action="store_true", required=False, help="Verbose")
+    parser.add_argument("--gen_video", action="store_true", required=False, help="Generate video")
     parser.add_argument("--show", action="store_true", required=False, help="Show animation")
     parser.add_argument("--seed", action="store", type=int, required=False, default=2430, help="Random seed")
     # parser.add_argument("--num_trials", action="store", type=int, required=False, help="Number of trials")
@@ -43,12 +44,15 @@ def main():
     args = parser.parse_args()
     random.seed(args.seed)
     np.random.seed(args.seed)
+
     if args.save is None:
-        args.save = f"results/t={args.topology.replace('/','-').replace('.csv','')}_c={args.collective.replace('/','-').replace('.csv','')}_s={args.synthesizer}"
+        topology_name = args.topology.replace('/','-').replace('\\','-').replace('.csv','')
+        collective_name = args.collective.replace('/','-').replace('\\','-').replace('.csv','')
+        args.save = os.path.join("results", f"t={topology_name}_c={collective_name}_s={args.synthesizer}")
         if args.synthesizer=="multiple" or args.synthesizer=="":
             args.save += f"_{args.num_beams}"
     os.makedirs(args.save, exist_ok=True)
-    with open(f"{args.save}/args.json", "w") as f:
+    with open(os.path.join(f"{args.save}", "args.json"), "w", newline="") as f:
         json.dump(vars(args)|{"git_hash":get_git_hash()}, f, indent=4)
     print(f"Saving to {args.save}")
     ####################################################################################################
@@ -95,15 +99,16 @@ def main():
         synthesizer.solve()
     elif args.synthesizer=="ilp":
         synthesizer = ILPSynthesizer(topology=topology,collective=collective)
-        synthesizer.solve(verbose=args.verbose,filename=args.save+"/result.lp",time_limit=60)
-        synthesizer.write(args.save+"/result.sol")
+        synthesizer.solve(verbose=args.verbose,filename=os.path.join(args.save, "result.lp"),time_limit=120)
+        synthesizer.write(os.path.join(args.save, "result.sol"))
     else:
         raise NotImplementedError(f"Synthesizer {args.synthesizer} not supported")
     timer.stop()
     print("Collective Time:",synthesizer.current_time,"ns")
     print("Synthesis Time:",timer.get_time(),"s")
-    synthesizer.write_csv(args.save+"/result.csv",synthesis_time=timer.get_time())
-    animate_collective(args.save+"/result.csv", save_name=args.save+"/result.mp4", show=args.show)
+    synthesizer.write_csv(os.path.join(args.save, "result.csv"),synthesis_time=timer.get_time())
+    if args.gen_video:
+        animate_collective(os.path.join(args.save, "result.csv"), save_name=os.path.join(args.save, "result.mp4"), show=args.show)
 
 if __name__ == '__main__':
     main()

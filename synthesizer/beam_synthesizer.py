@@ -15,7 +15,6 @@ class BeamSynthesizer:
         self.instances = [
             TACOSSynthesizer(topology=topology, collective=collective, chunk_size=chunk_size, discretize=discretize) for _ in range(self.num_beams)
         ]
-        # self.finished_instances = []
         self.fitness_type = fitness_type
 
     def compute_fitness(self, instance: TACOSSynthesizer) -> float:
@@ -62,7 +61,7 @@ class BeamSynthesizer:
         for edge,chunk,send_time,receive_time in best_instance.event_history:
             edge_to_chunks[edge].append((chunk, send_time, receive_time))
 
-        with open(filename, mode="w") as f:
+        with open(filename, mode="w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["NPUs Count",len(best_instance.nodes)])
             writer.writerow(["Links Count",len(best_instance.edges)])

@@ -17,6 +17,10 @@ class MultipleTACOSSynthesizer:
     def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> None:
         for i in range(len(self.instances)):
             self.instances[i].solve()
+
+    @property
+    def current_time(self):
+        return np.min([instance.current_time for instance in self.instances])
     
     def write_csv(self, filename: str, synthesis_time: float) -> None:
         solve_times = [instance.current_time for instance in self.instances]
@@ -27,7 +31,7 @@ class MultipleTACOSSynthesizer:
         for edge,chunk,send_time,receive_time in best_instance.event_history:
             edge_to_chunks[edge].append((chunk, send_time, receive_time))
 
-        with open(filename, mode="w") as f:
+        with open(filename, mode="w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["NPUs Count",len(best_instance.nodes)])
             writer.writerow(["Links Count",len(best_instance.edges)])

@@ -70,7 +70,10 @@ class ILPSynthesizer:
         self.model.Params.OutputFlag = verbose
         if filename is not None:
             self.model.write(filename)
-        self.model.optimize()
+        try:
+            self.model.optimize()
+        except:
+            raise Exception("Gurobi cannot solve this ILP!")
 
     def write(self, filename: str) -> None:
         self.model.write(filename)
@@ -80,7 +83,7 @@ class ILPSynthesizer:
         return self.model.getVarByName('T').X
     
     def write_csv(self, filename: str, synthesis_time: float) -> None:
-        with open(filename, mode="w") as f:
+        with open(filename, mode="w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["NPUs Count",len(self.nodes)])
             writer.writerow(["Links Count",len(self.edges)])
