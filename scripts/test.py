@@ -39,7 +39,7 @@ def main():
         writer = csv.writer(f)
         writer.writerow(["Topology","Collective","Synthesizer","Num Beams","Trial","Collective Time","Synthesizer Time"])
 
-        topologies = ["grid_w=2_h=4_alpha=0_beta=1","grid_w=1_h=3_alpha=0_beta=1"]
+        topologies = ["wheel_n=10_alpha=0_beta=1"]#,"grid_w=2_h=4_alpha=0_beta=1",]
         collectives = ["all_gather"]
         synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam", "ilp"]
         for collective in collectives:
@@ -65,12 +65,15 @@ def main():
                         else:
                             num_trials = 1
                         print(f"Running: {' '.join(command)}")
-                        run_command(command)
+                        stdout, stderr = run_command(command)
                         finish = time.perf_counter()
-                        for trial in range(1,num_trials+1):
-                            collective_time, synthesizer_time = parse_csv(os.path.join("results",f"t={topology}_c={collective}_s={synthesizer}",f"result_{trial}.csv"))
-                            writer.writerow([topology, collective, synthesizer, num_beams, collective_time, synthesizer_time])
-                            print(f"\tColl={collective_time:.2f}_Synth={synthesizer_time:.2f}_Clock={finish-begin:.2f}")
+                        if stdout is None:
+                            print(f"\tFailed!")
+                        else:
+                            for trial in range(1,num_trials+1):
+                                collective_time, synthesizer_time = parse_csv(os.path.join("results",f"t={topology}_c={collective}_s={synthesizer}",f"result_{trial}.csv"))
+                                writer.writerow([topology, collective, synthesizer, num_beams, collective_time, synthesizer_time])
+                                print(f"\tColl={collective_time:.2f}_Synth={synthesizer_time:.2f}_Clock={finish-begin:.2f}")
 
 if __name__ == "__main__":
     start = time.perf_counter()
