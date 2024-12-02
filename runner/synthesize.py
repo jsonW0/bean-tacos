@@ -13,6 +13,7 @@ from runner.animate import animate_collective
 from helper.git_hash import get_git_hash
 from helper.timer import Timer
 from topology.topology import Topology
+from topology.built_in_topologies import get_topology
 from collective.collective import Collective
 from collective.all_gather import AllGather
 from synthesizer.naive_synthesizer import NaiveSynthesizer
@@ -60,13 +61,8 @@ def main():
     ####################################################################################################
     if os.path.exists(args.topology):
         topology = Topology(filename=args.topology)
-    elif args.topology=="grid":
-        G = nx.convert_node_labels_to_integers(nx.grid_graph(dim=(3,3)).to_directed())
-        for src, dest in G.edges:
-            G.add_edge(src,dest,alpha=0,beta=1)
-        topology = Topology(G=G)
     else:
-        raise FileNotFoundError(f"Cannot find {args.topology}")
+        topology = get_topology(args.topology)
     ####################################################################################################
     # COLLECTIVE
     ####################################################################################################
