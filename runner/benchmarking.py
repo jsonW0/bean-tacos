@@ -167,7 +167,7 @@ def create_csv_files(output_dir: str, params: Dict[str, List[Any]]) -> None:
         # outin should only have scalar bandwidth ratios
         assert all(isinstance(ratio, int) for ratio in params["bandwidth_ratio"])
         for world_size, b_ratio in itertools.product(
-            params["world_size"], params["bm"]
+            params["world_size"], params["bandwidth_ratio"]
         ):
             csv_filename = params_to_file_name(
                 output_dir, topology, [world_size, b_ratio]
