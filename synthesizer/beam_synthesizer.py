@@ -10,10 +10,10 @@ from collective.collective import Collective
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
 
 class BeamSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576 / 976562.5, discretize=False, num_beams=1, fitness_type="chunk_count"):
+    def __init__(self, topology: Topology, collective: Collective, discretize=False, num_beams=1, fitness_type="chunk_count"):
         self.num_beams = num_beams
         self.instances = [
-            TACOSSynthesizer(topology=topology, collective=collective, chunk_size=chunk_size, discretize=discretize) for _ in range(self.num_beams)
+            TACOSSynthesizer(topology=topology, collective=collective, discretize=discretize) for _ in range(self.num_beams)
         ]
         self.fitness_type = fitness_type
 
@@ -27,7 +27,7 @@ class BeamSynthesizer:
         else:
             raise ValueError(f"Fitness function not supported: {self.fitness_type}")
 
-    def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> None:
+    def solve(self) -> None:
         while not all(instance.satisfied() for instance in self.instances):
             population = []
             for instance in self.instances:

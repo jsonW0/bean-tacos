@@ -10,6 +10,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 from runner.animate import animate_collective
+from runner.verify import verify_collective
 from helper.git_hash import get_git_hash
 from helper.timer import Timer
 from topology.topology import Topology
@@ -70,7 +71,7 @@ def main():
         raise NotImplementedError(f"Does not yet support collective from file path")
         collective = Collective(filename=args.collective)
     elif args.collective=="all_gather":
-        collective = AllGather(npus_count=topology.num_nodes, collectives_count=1, chunk_size=1)
+        collective = AllGather(npus_count=topology.num_nodes, collectives_count=1, chunk_size=1048576 / 976562.5)
     else:
         raise FileNotFoundError(f"Cannot find {args.collective}")
     ####################################################################################################
@@ -104,6 +105,9 @@ def main():
         print("Collective Time:",synthesizer.current_time,"ns")
         print("Synthesis Time:",timer.get_time(),"s")
         synthesizer.write_csv(os.path.join(args.save, f"result_{trial}.csv"),synthesis_time=timer.get_time())
+        if not verify_collective(os.path.join(args.save, f"result_{trial}.csv"), topology=topology, collective=collective):
+            os.remove(os.path.join(args.save, f"result_{trial}.csv"))
+            raise ValueError(f"Synthesized algorithm is invalid!")
         if args.gen_video:
             animate_collective(os.path.join(args.save, f"result_{trial}.csv"), save_name=os.path.join(args.save, f"result_{trial}.mp4"), show=args.show)
 

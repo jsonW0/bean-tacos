@@ -9,12 +9,12 @@ from collective.collective import Collective
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
 
 class MultipleTACOSSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576 / 976562.5, discretize=False, num_beams=1):
+    def __init__(self, topology: Topology, collective: Collective, discretize=False, num_beams=1):
         self.instances = [
-            TACOSSynthesizer(topology=topology, collective=collective, chunk_size=chunk_size, discretize=discretize) for _ in range(num_beams)
+            TACOSSynthesizer(topology=topology, collective=collective, discretize=discretize) for _ in range(num_beams)
         ]
     
-    def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> None:
+    def solve(self) -> None:
         for i in range(len(self.instances)):
             self.instances[i].solve()
 

@@ -6,10 +6,10 @@ from topology.topology import Topology
 from collective.collective import Collective
 
 class ILPSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576 / 976562.5, big_num: float = 1e4):
+    def __init__(self, topology: Topology, collective: Collective, big_num: float = 1e4):
         self.topology = topology
         self.collective = collective
-        self.chunk_size = chunk_size
+        self.chunk_size = collective.chunk_size
 
         self.nodes = self.topology.G.nodes
         self.edges = self.topology.G.edges

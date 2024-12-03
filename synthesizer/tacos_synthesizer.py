@@ -7,10 +7,10 @@ from topology.topology import Topology
 from collective.collective import Collective
 
 class TACOSSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, chunk_size: float = 1048576 / 976562.5, discretize=False):
+    def __init__(self, topology: Topology, collective: Collective, discretize=False):
         self.topology = topology
         self.collective = collective
-        self.chunk_size = chunk_size
+        self.chunk_size = collective.chunk_size
 
         self.nodes = self.topology.G.nodes
         self.edges = self.topology.G.edges
@@ -82,7 +82,7 @@ class TACOSSynthesizer:
     def write_ten(self, filename: str) -> None:
         pass
     
-    def solve(self, time_limit: float = None, verbose: bool = False, filename: str = None) -> None:
+    def solve(self) -> None:
         while not self.satisfied():
             possible_matches = self.get_possible_link_chunk_matches()
             if len(possible_matches)==0:

@@ -41,7 +41,8 @@ def main():
 
         topologies = ["wheel_n=10_alpha=0_beta=1"]#,"grid_w=2_h=4_alpha=0_beta=1",]
         collectives = ["all_gather"]
-        synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam", "ilp"]
+        synthesizers = ["ilp"]
+        # synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam", "ilp"]
         for collective in collectives:
             for topology in topologies:
                 for synthesizer in synthesizers:
@@ -51,7 +52,7 @@ def main():
                             "--topology", topology, 
                             "--collective", collective,
                             "--synthesizer", synthesizer,
-                            # "--gen_video",
+                            "--gen_video",
                         ]
                         if synthesizer in {"multiple_tacos", "beam"}:
                             command.extend([
