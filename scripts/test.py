@@ -3,11 +3,14 @@ import sys
 import re
 import csv
 import time
+import argparse
 import subprocess
+from contextlib import contextmanager
 from typing import List, Dict, Set, Tuple, Optional
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import pygwalker as pyg
 
 class TeeOutput:
     def __init__(self, file_path, mode='w'):
@@ -42,6 +45,16 @@ class TeeOutput:
         if self.file:
             self.file.close()
 
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:  
+            yield
+        finally:
+            sys.stdout = old_stdout
+
 def run_command(command: List[str]):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
     stdout_lines = []
@@ -72,32 +85,46 @@ def parse_csv(filename: str):
     return float(collective_time), float(synthesis_time)
 
 def main():
-    central_filename = "results/result.csv"
-    with open(central_filename, mode="w", newline="") as f:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--topology", action="store", type=str, nargs='+', required=False, help="Name of topology or filepath to topology csv")
+    parser.add_argument("--collective", action="store", type=str, nargs='+', required=False, help="Name of collective pattern or filepath to collective csv")
+    parser.add_argument("--synthesizer", action="store", type=str, nargs='+', required=False, help="Name of synthesis algorithm")
+    parser.add_argument("--num_trials", action="store", type=int, required=False, default=5, help="Number of trials")
+    parser.add_argument("--num_beams", action="store", type=int, nargs='+', required=False, default=[5], help="Beam width for beam search")
+    parser.add_argument("--save_csv", action="store", type=str, required=False, default="results/result.csv", help="Name to save output csv")
+    parser.add_argument("--save_html", action="store", type=str, required=False, default="results/result.html", help="Name to save output pyg html")
+    parser.add_argument("--gen_video", action="store_true", required=False, help="Generate videos")
+    parser.add_argument("--seed", action="store", type=int, required=False, default=2430, help="Random seed")
+    args = parser.parse_args()
+    with open(args.save_csv, mode="w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["Topology","Collective","Synthesizer","Num Beams","Trial","Collective Time","Synthesizer Time"])
 
-        topologies = ["wheel_n=10_alpha=0_beta=1"]#,"grid_w=2_h=4_alpha=0_beta=1",]
-        collectives = ["all_gather"]
-        # synthesizers = ["ilp"]
-        synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"]#, "ilp"]
+        if args.topology is None:
+            topologies = ["wheel_n=10_alpha=0_beta=1"]#,"grid_w=2_h=4_alpha=0_beta=1",]
+        if args.collective is None:
+            collectives = ["all_gather"]
+        if args.synthesizer is None:
+            synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"]#, "ilp"]
         for collective in collectives:
             for topology in topologies:
                 for synthesizer in synthesizers:
-                    for num_beams in [5]:
+                    for num_beams in args.num_beams:
                         begin = time.perf_counter()
                         command = ["python", "-m", "runner.synthesize", 
                             "--topology", topology, 
                             "--collective", collective,
                             "--synthesizer", synthesizer,
-                            # "--gen_video",
+                            "--seed", str(args.seed),
                         ]
+                        if args.gen_video:
+                            command.append("--gen_video")
                         if synthesizer in {"multiple_tacos", "beam"}:
                             command.extend([
                                 "--num_beams", str(num_beams),
                             ])
                         if synthesizer in {"naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"}:
-                            num_trials = 5
+                            num_trials = args.num_trials
                             command.extend([
                                 "--num_trials", str(num_trials),
                             ])
@@ -111,9 +138,13 @@ def main():
                         else:
                             for trial in range(1,num_trials+1):
                                 collective_time, synthesizer_time = parse_csv(os.path.join("results",f"t={topology}_c={collective}_s={synthesizer}",f"result_{trial}.csv"))
-                                writer.writerow([topology, collective, synthesizer, num_beams, collective_time, synthesizer_time])
+                                writer.writerow([topology, collective, synthesizer, num_beams, trial, collective_time, synthesizer_time])
                                 print(f"\tColl={collective_time:.2f}_Synth={synthesizer_time:.2f}_Clock={finish-begin:.2f}")
-
+    df = pd.read_csv(args.save_csv)
+    with suppress_stdout():
+        walker = pyg.walk(df)
+    with open(args.save_html, mode="w", newline="") as f:
+        f.write(walker.to_html())
 if __name__ == "__main__":
     with TeeOutput("results/log.txt"):
         start = time.perf_counter()
