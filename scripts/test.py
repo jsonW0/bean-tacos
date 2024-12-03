@@ -9,17 +9,55 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def run_command(command: List[str]) -> Tuple[Optional[str], Optional[str]]:
+class TeeOutput:
+    def __init__(self, file_path, mode='w'):
+        self.file_path = file_path
+        self.mode = mode
+        self.file = None
+        self.original_stdout = None
+        self.original_stderr = None
+
+    def __enter__(self):
+        self.file = open(self.file_path, self.mode, buffering=1)
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
+        sys.stdout = self
+        sys.stderr = self
+        return self
+
+    def write(self, data):
+        if data:
+            self.original_stdout.write(data)
+            self.original_stdout.flush()
+            self.file.write(data)
+            self.file.flush()
+
+    def flush(self):
+        self.original_stdout.flush()
+        self.file.flush()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        sys.stdout = self.original_stdout
+        sys.stderr = self.original_stderr
+        if self.file:
+            self.file.close()
+
+def run_command(command: List[str]):
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+    stdout_lines = []
+    stderr_lines = []
     try:
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-        return result.stdout, result.stderr
-    except subprocess.CalledProcessError as e:
-        print(f"Command '{' '.join(command)}' failed with exit code {e.returncode}")
-        print(f"Error Output: {e.stderr}")
-        return None, None
-    except FileNotFoundError:
-        print(f"Command not found: {command[0]}")
-        return None, None
+        for line in process.stdout:
+            print("\t\t"+line, end="")
+            stdout_lines.append(line)
+        for line in process.stderr:
+            print("\t\t"+line, end="", file=sys.stderr)
+            stderr_lines.append(line)
+        process.wait()
+    except Exception as e:
+        print(f"Error during execution: {e}", file=sys.stderr)
+        process.terminate()    
+    return process.returncode, ''.join(stdout_lines), ''.join(stderr_lines)
 
 def parse_csv(filename: str):
     collective_time = None
@@ -41,8 +79,8 @@ def main():
 
         topologies = ["wheel_n=10_alpha=0_beta=1"]#,"grid_w=2_h=4_alpha=0_beta=1",]
         collectives = ["all_gather"]
-        synthesizers = ["ilp"]
-        # synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam", "ilp"]
+        # synthesizers = ["ilp"]
+        synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"]#, "ilp"]
         for collective in collectives:
             for topology in topologies:
                 for synthesizer in synthesizers:
@@ -52,7 +90,7 @@ def main():
                             "--topology", topology, 
                             "--collective", collective,
                             "--synthesizer", synthesizer,
-                            "--gen_video",
+                            # "--gen_video",
                         ]
                         if synthesizer in {"multiple_tacos", "beam"}:
                             command.extend([
@@ -66,9 +104,9 @@ def main():
                         else:
                             num_trials = 1
                         print(f"Running: {' '.join(command)}")
-                        stdout, stderr = run_command(command)
+                        return_code, stdout, stderr = run_command(command)
                         finish = time.perf_counter()
-                        if stdout is None:
+                        if return_code!=0:
                             print(f"\tFailed!")
                         else:
                             for trial in range(1,num_trials+1):
@@ -77,7 +115,8 @@ def main():
                                 print(f"\tColl={collective_time:.2f}_Synth={synthesizer_time:.2f}_Clock={finish-begin:.2f}")
 
 if __name__ == "__main__":
-    start = time.perf_counter()
-    main()
-    end = time.perf_counter()
-    print(f"All tests took a total of {end-start:.2f} seconds")
+    with TeeOutput("results/log.txt"):
+        start = time.perf_counter()
+        main()
+        end = time.perf_counter()
+        print(f"All tests took a total of {end-start:.2f} seconds")

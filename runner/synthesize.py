@@ -97,7 +97,7 @@ def main():
             synthesizer.solve()
         elif args.synthesizer=="ilp":
             synthesizer = ILPSynthesizer(topology=topology,collective=collective)
-            synthesizer.solve(verbose=args.verbose,filename=os.path.join(args.save, f"result_{trial}.lp"),time_limit=120)
+            synthesizer.solve(verbose=args.verbose,filename=os.path.join(args.save, f"result_{trial}.lp"),time_limit=60)
             synthesizer.write(os.path.join(args.save, f"result_{trial}.sol"))
         else:
             raise NotImplementedError(f"Synthesizer {args.synthesizer} not supported")
