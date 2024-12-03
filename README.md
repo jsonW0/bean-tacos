@@ -10,10 +10,13 @@ Inspired by state-of-the-art approaches in LLM decoding, our project aims to dev
 ```
 git clone https://github.com/jsonW0/tacos-ilp.git
 cd tacos-ilp
-conda create -n tacos python=3.9.9
-conda install -c gurobi gurobi
+conda create -n tacos python=3.9
+conda activate tacos
+pip install -r requirements.txt
 ```
 The ILP formulation requires `gurobi`. Follow the [directions](https://www.gurobi.com/features/academic-named-user-license/) to get a free academic named user license. Ultimately, you should run `grbgetkey (some-key-id)` (after installing via conda).
+
+We also (optionally) use `pygraphviz` for better graph layouts. Follow the [directions](https://pygraphviz.github.io/documentation/stable/install.html) to download on system.
 
 ### Specifying a Topology
 
