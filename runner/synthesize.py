@@ -17,6 +17,8 @@ from topology.topology import Topology
 from topology.built_in_topologies import get_topology
 from collective.collective import Collective
 from collective.all_gather import AllGather
+from collective.scatter import Scatter
+from collective.broadcast import Broadcast
 from synthesizer.naive_synthesizer import NaiveSynthesizer
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
 from synthesizer.greedy_tacos_synthesizer import GreedyTACOSSynthesizer
@@ -68,10 +70,13 @@ def main():
     # COLLECTIVE
     ####################################################################################################
     if os.path.exists(args.collective):
-        raise NotImplementedError(f"Does not yet support collective from file path")
         collective = Collective(filename=args.collective)
     elif args.collective=="all_gather":
-        collective = AllGather(npus_count=topology.num_nodes, collectives_count=1, chunk_size=1048576 / 976562.5)
+        collective = AllGather(npus_count=topology.num_nodes, collectives_count=1)
+    elif args.collective=="scatter":
+        collective = Scatter(npus_count=topology.num_nodes, src=0, collectives_count=1)
+    elif args.collective=="broadcast":
+        collective = Broadcast(npus_count=topology.num_nodes, src=0, collectives_count=1)
     else:
         raise FileNotFoundError(f"Cannot find {args.collective}")
     ####################################################################################################

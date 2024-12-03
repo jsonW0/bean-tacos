@@ -9,7 +9,7 @@ class AllGather(Collective):
 
     def __init__(self,
                  npus_count: int,
-                 chunk_size: ChunkSize = 1,
+                 chunk_size: ChunkSize = 1048576 / 976562.5,
                  collectives_count: int = 1
                  ):
         """
@@ -34,7 +34,7 @@ class AllGather(Collective):
                 # chunk_id increments at src-level
                 chunk_id += 1
 
-        self.update_chunk_counts()
+        self.chunks_count = len(self.chunks)
 
     def add_group(self, group: List[NpuId]) -> None:
         for chunk in group:

@@ -13,7 +13,7 @@ class Scatter(Collective):
     def __init__(self,
                  src: NpuId,
                  npus_count: int,
-                 chunk_size: ChunkSize = 1,
+                 chunk_size: ChunkSize = 1048576 / 976562.5,
                  collectives_count: int = 1
                  ):
         """
@@ -35,81 +35,4 @@ class Scatter(Collective):
                 # print(f"Add: {chunk_id}, {src}, {dest}")
                 chunk_id += 1
 
-        self.update_chunk_counts()
-        self.orig_precond = copy.deepcopy(self.postcondition)
-
-    def amend_postcond_backtracking(self,
-                                    topology: Topology,
-                                    enable_neighbor: bool = False) -> None:
-        newly_added = dict()
-        orig_dest = dict()
-        paths = dict()
-
-        for chunk in range(self.chunks_count):
-            src = None
-            dest = None
-            for npu in range(topology.npus_count):
-                if (chunk, npu) in self.precondition:
-                    src = npu
-                if (chunk, npu) in self.postcondition:
-                    dest = npu
-
-            _, path = topology.shortest_path(src=src, dest=dest, chunk_size=self.chunk_size)
-
-            orig_dest[chunk] = dest
-            paths[chunk] = path
-
-            for i in range(1, len(path) - 1):
-                # add intermediate npu
-                intermediate_npu = path[i]
-                self.postcondition.add((chunk, intermediate_npu))
-
-            if enable_neighbor:
-                # add nearby npus
-                for i in range(len(path)):
-                    intermediate_npu = path[i]
-
-                    # get neighbors of intermediate_npu
-                    incoming_npus = topology.incoming_npus(intermediate_npu)
-                    outgoing_npus = topology.outgoing_npus(intermediate_npu)
-
-                    npus_to_add = set(incoming_npus).union(set(outgoing_npus))
-
-                    if chunk in newly_added:
-                        newly_added[chunk] = newly_added[chunk].union(npus_to_add)
-                    else:
-                        newly_added[chunk] = npus_to_add
-
-                    for npu in npus_to_add:
-                        self.postcondition.add((chunk, npu))
-
-                # print(chunk, src, dest, path)
-
-        for chunk, added in newly_added.items():
-            print(f"{chunk}: {added} (orig: {orig_dest[chunk]}, path: {paths[chunk]})")
-
-    # def add_random_postcond(self,
-    #                         topology: Topology) -> None:
-    #
-    #
-    #     for chunk in range(self.chunks_count):
-    #         src = None
-    #         dest = None
-    #         for npu in range(topology.npus_count):
-    #             if (chunk, npu) in self.precondition:
-    #                 src = npu
-    #             if (chunk, npu) in self.postcondition:
-    #                 dest = npu
-    #
-    #         _, path = topology.shortest_path(src=src, dest=dest, chunk_size=self.chunk_size)
-    #
-    #         print(chunk, src, dest, path)
-    #         orig_dest[chunk] = dest
-    #
-    #         for i in range(len(path)):
-    #             intermediate_npu = path[i]
-    #
-    #
-    #
-    #     for chunk, added in newly_added.items():
-    #         print(f"{chunk}: {added} (orig: {orig_dest[chunk]})")
+        self.chunks_count = len(self.chunks)

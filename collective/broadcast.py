@@ -11,7 +11,7 @@ class Broadcast(Collective):
     def __init__(self,
                  npus_count: int,
                  src: NpuId,
-                 chunk_size: ChunkSize = 1,
+                 chunk_size: ChunkSize = 1048576 / 976562.5,
                  collectives_count: int = 1
                  ):
         """
@@ -35,5 +35,4 @@ class Broadcast(Collective):
             # chunk_id increments at src-level
             chunk_id += 1
 
-        self.update_chunk_counts()
-        self.orig_precond = copy.deepcopy(self.postcondition)
+        self.chunks_count = len(self.chunks)

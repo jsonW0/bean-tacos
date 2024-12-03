@@ -1,5 +1,6 @@
+import json
+from collections import defaultdict
 from helper.typing import *
-
 
 class Collective:
     """
@@ -7,27 +8,28 @@ class Collective:
     """
 
     def __init__(self,
-                 chunk_size: ChunkSize):
+                 filename: str = None,
+                 chunk_size: ChunkSize = 1048576 / 976562.5):
         """
         Initialize a collective.
 
         :param chunk_size: size of each collective chunk.
         """
-        self.chunk_size = chunk_size  # size of each chunk
+        if filename is not None:
+            self.load_json(filename)
+        else:
+            self.chunk_size = chunk_size  # size of each chunk
 
-        self.chunks: Set[ChunkId] = set()  # list of ChunkIDs
-        self.chunks_count = -1  # total number of unique chunks
+            self.chunks: Set[ChunkId] = set()  # list of ChunkIDs
+            self.chunks_count = -1  # total number of unique chunks
 
-        # precondition and postcondition
-        # represented using a set of (chunkId, NpuId)
-        self.precondition: Set[Tuple[ChunkId, NpuId]] = set()
-        self.postcondition: Set[Tuple[ChunkId, NpuId]] = set()
-        self.orig_precond = set()
+            # precondition and postcondition
+            # represented using a set of (chunkId, NpuId)
+            self.precondition: Set[Tuple[ChunkId, NpuId]] = set()
+            self.postcondition: Set[Tuple[ChunkId, NpuId]] = set()
 
-        self.dests_count: Dict[ChunkId, int] = dict()  # number of dests of each chunk
-
-        self.rename_dict = dict()
-        self.recovery_dict = dict()
+            self.precondition_dict: Dict[NpuId, Set[ChunkId]] = defaultdict(set)
+            self.postcondition_dict: Dict[NpuId, Set[ChunkId]] = defaultdict(set)
 
     @property
     def num_chunks(self):
@@ -55,30 +57,33 @@ class Collective:
         self.precondition.add((id, src))
         self.postcondition.add((id, dest))
 
-        # increment dests_count
-        if id in self.dests_count:
-            self.dests_count[id] += 1
-        else:
-            self.dests_count[id] = 1
+        self.precondition_dict[src].add(id)
+        self.postcondition_dict[dest].add(id)
 
-    # todo: debug renaming scheme
-    def add_rename(self, old_id: ChunkId, new_id: ChunkId, src: NpuId, dest: NpuId) -> None:
-        self.rename_dict[old_id] = new_id
-        self.recovery_dict[new_id] = old_id
 
-        self.add(id=new_id, src=src, dest=dest)
+    def write_json(self, filename: str) -> None:
+        with open(filename, mode="w", newline="") as f:
+            json.dump({
+                "chunk_size": self.chunk_size,
+                "chunks": list(self.chunks),
+                "preconditions": {key:list(value) for key,value in self.precondition_dict.items()},
+                "postconditions": {key:list(value) for key,value in self.postcondition_dict.items()},
+            },f,indent=4)
 
-    def update_chunk_counts(self) -> None:
+    def load_json(self, filename: str) -> None:
+        with open(filename, mode="r", newline="") as f:
+            data = json.load(f)
+        self.chunk_size = data["chunk_size"]
+        self.chunks = set(data["chunks"])
         self.chunks_count = len(self.chunks)
-
-    def rename(self) -> None:
-        current_id = 0
-
-        for chunk in self.chunks:
-            self.rename_dict[chunk] = current_id
-            self.recovery_dict[current_id] = chunk
-            current_id += 1
-
-        self.chunks = set(range(current_id))
-        self.precondition = set(map(lambda x: (self.rename_dict[x[0]], x[1]), self.precondition))
-        self.postcondition = set(map(lambda x: (self.rename_dict[x[0]], x[1]), self.postcondition))
+        self.precondition_dict = {key:set(value) for key,value in data["preconditions"].items()}
+        self.postcondition_dict = {key:set(value) for key,value in data["postconditions"].items()}
+        self.precondition = set()
+        self.postcondition = set()
+        for node, chunks in self.precondition_dict.items():
+            for chunk in chunks:
+                self.precondition.add((chunk, node))
+        for node, chunks in self.postcondition_dict.items():
+            for chunk in chunks:
+                self.postcondition.add((chunk, node))
+        
