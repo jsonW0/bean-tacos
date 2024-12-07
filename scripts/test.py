@@ -101,14 +101,14 @@ def main():
         writer.writerow(["Topology","Collective","Synthesizer","Num Beams","Trial","Collective Time","Synthesizer Time"])
 
         if args.topology is None:
-            topologies = ["wheel_n=10_alpha=0_beta=1"]#,"grid_w=2_h=4_alpha=0_beta=1",]
+            args.topology = ["wheel_n=10_alpha=0_beta=1"]#,"grid_w=2_h=4_alpha=0_beta=1",]
         if args.collective is None:
-            collectives = ["all_gather"]
+            args.collective = ["all_gather"]
         if args.synthesizer is None:
-            synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"]#, "ilp"]
-        for collective in collectives:
-            for topology in topologies:
-                for synthesizer in synthesizers:
+            args.synthesizer = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"]#, "ilp"]
+        for collective in args.collective:
+            for topology in args.topology:
+                for synthesizer in args.synthesizer:
                     for num_beams in args.num_beams:
                         begin = time.perf_counter()
                         command = ["python", "-m", "runner.synthesize", 

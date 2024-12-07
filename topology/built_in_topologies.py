@@ -1,31 +1,34 @@
 import re
+import ast
+import math
+import random
 import networkx as nx
 from topology.topology import Topology
 
 def get_topology(specifier: str) -> Topology:
-    if match := re.match(r"^grid_w=(\d+)_h=(\d+)_alpha=([\d.]+)_beta=([\d.]+)$", specifier):
-        w, h, alpha, beta = match.groups()
-        G = nx.convert_node_labels_to_integers(nx.grid_graph(dim=(int(w),int(h))).to_directed())
-        for src, dest in G.edges:
-            G.add_edge(src,dest,alpha=float(alpha),beta=float(beta))
-        return Topology(G=G)
-    elif match := re.match(r"^fc_n=(\d+)_alpha=([\d.]+)_beta=([\d.]+)$", specifier):
-        n, alpha, beta = match.groups()
-        G = nx.complete_graph(n=int(n)).to_directed()
-        for src, dest in G.edges:
-            G.add_edge(src,dest,alpha=float(alpha),beta=float(beta))
-        return Topology(G=G)
-    elif match := re.match(r"^wheel_n=(\d+)_alpha=([\d.]+)_beta=([\d.]+)$", specifier):
-        n, alpha, beta = match.groups()
-        G = nx.wheel_graph(n=int(n)).to_directed()
-        for src, dest in G.edges:
-            G.add_edge(src,dest,alpha=float(alpha),beta=float(beta))
-        return Topology(G=G)
-    elif match := re.match(r"^tree_r=(\d+)_h=(\d+)_alpha=([\d.]+)_beta=([\d.]+)$", specifier):
-        r, h, alpha, beta = match.groups()
-        G = nx.balanced_tree(r=int(r),h=int(h)).to_directed()
-        for src, dest in G.edges:
-            G.add_edge(src,dest,alpha=float(alpha),beta=float(beta))
+    # nx_graph_name__arg1=x__arg2=y__arg3=z
+    # supports alpha, beta for homogeneous
+    # supports alpha2, beta2, proportion for random heterogeneity
+    if match := re.match(r"^nx_(?P<name>[a-zA-Z0-9_]+)(?:__(?P<args>.*))?$", specifier):
+        generator_name = match.group("name")
+        args_string = match.group("args")
+        args = {}
+        for arg in args_string.split("__"):
+            key, value = arg.split("=")
+            args[key] = ast.literal_eval(value)
+        alpha = args.pop("alpha") if "alpha" in args else 0.
+        beta = args.pop("beta") if "beta" in args else 1.
+        alpha2 = args.pop("alpha2") if "alpha" in args else 0.
+        beta2 = args.pop("beta2") if "beta" in args else 0.5
+        proportion = args.pop("proportion") if "proportion" in args else 0.
+
+        graph_function = getattr(nx, generator_name)
+        G = nx.convert_node_labels_to_integers(graph_function(**args)).to_directed()
+
+        heterogeneity = [(alpha,beta) for _ in range(math.floor((1-proportion)*len(G.edges)))]+[(alpha2,beta2) for _ in range(math.ceil(proportion*len(G.edges)))]
+        random.shuffle(heterogeneity)
+        for (src, dest), (link_alpha, link_beta) in zip(G.edges,heterogeneity):
+            G.add_edge(src,dest,alpha=link_alpha,beta=link_beta)
         return Topology(G=G)
     else:
         raise ValueError(f"Cannot find or recognize: {specifier}")
