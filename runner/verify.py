@@ -115,11 +115,13 @@ def verify_collective(filename: str, topology: Topology, collective: Collective,
     
     for node in precondition.keys():
         for chunk in precondition[node]:
-            postcondition[node].remove(chunk)
+            if chunk in postcondition[node]:
+                postcondition[node].remove(chunk)
     for edge,transmissions in edge_chunk_list.items():
         src, dest = edge
         for chunk_id,send_time,rec_time in transmissions:
-            postcondition[dest].remove(chunk_id)
+            if chunk_id in postcondition[dest]:
+                postcondition[dest].remove(chunk_id)
     for node in postcondition.keys():
         if len(postcondition[node])>0:
             raise ValueError(f"Postcondition error: node {node} doesn't have chunks {postcondition[node]}")

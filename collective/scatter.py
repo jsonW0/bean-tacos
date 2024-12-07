@@ -1,7 +1,5 @@
-import copy
 from collective.collective import Collective
 from helper.typing import *
-from topology.topology import Topology
 
 
 class Scatter(Collective):
@@ -32,7 +30,6 @@ class Scatter(Collective):
         for _ in range(collectives_count):
             for dest in range(npus_count):
                 self.add(id=chunk_id, src=src, dest=dest)
-                # print(f"Add: {chunk_id}, {src}, {dest}")
                 chunk_id += 1
 
         self.chunks_count = len(self.chunks)

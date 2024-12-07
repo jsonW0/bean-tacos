@@ -17,8 +17,10 @@ from topology.topology import Topology
 from topology.built_in_topologies import get_topology
 from collective.collective import Collective
 from collective.all_gather import AllGather
+from collective.all_to_all import AllToAll
 from collective.scatter import Scatter
 from collective.broadcast import Broadcast
+from collective.gather import Gather
 from synthesizer.naive_synthesizer import NaiveSynthesizer
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
 from synthesizer.greedy_tacos_synthesizer import GreedyTACOSSynthesizer
@@ -73,10 +75,15 @@ def main():
         collective = Collective(filename=args.collective)
     elif args.collective=="all_gather":
         collective = AllGather(npus_count=topology.num_nodes, collectives_count=1)
-    elif args.collective=="scatter":
-        collective = Scatter(npus_count=topology.num_nodes, src=0, collectives_count=1)
-    elif args.collective=="broadcast":
-        collective = Broadcast(npus_count=topology.num_nodes, src=0, collectives_count=1)
+    elif args.collective=="all_to_all":
+        collective = AllToAll(npus_count=topology.num_nodes, collectives_count=1)
+        collective.write_json("all_to_all.json")
+    elif match := re.match(r"^scatter_(\d+)$",args.collective):
+        collective = Scatter(npus_count=topology.num_nodes, src=int(match.group(1)), collectives_count=1)
+    elif match := re.match(r"^broadcast_(\d+)$",args.collective):
+        collective = Broadcast(npus_count=topology.num_nodes, src=int(match.group(1)), collectives_count=1)
+    elif match := re.match(r"^gather_(\d+)$",args.collective):
+        collective = Gather(npus_count=topology.num_nodes, dest=int(match.group(1)), collectives_count=1)
     else:
         raise FileNotFoundError(f"Cannot find {args.collective}")
     ####################################################################################################

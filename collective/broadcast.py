@@ -1,6 +1,5 @@
 from collective.collective import Collective
 from helper.typing import *
-import copy
 
 
 class Broadcast(Collective):
