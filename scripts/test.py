@@ -86,9 +86,9 @@ def parse_csv(filename: str):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--topology", action="store", type=str, nargs='+', required=False, help="Name of topology or filepath to topology csv")
-    parser.add_argument("--collective", action="store", type=str, nargs='+', required=False, help="Name of collective pattern or filepath to collective csv")
-    parser.add_argument("--synthesizer", action="store", type=str, nargs='+', required=False, help="Name of synthesis algorithm")
+    parser.add_argument("--topologies", action="store", type=str, nargs='+', required=False, help="Name of topology or filepath to topology csv")
+    parser.add_argument("--collectives", action="store", type=str, nargs='+', required=False, help="Name of collective pattern or filepath to collective csv")
+    parser.add_argument("--synthesizers", action="store", type=str, nargs='+', required=False, help="Name of synthesis algorithm")
     parser.add_argument("--num_trials", action="store", type=int, required=False, default=5, help="Number of trials")
     parser.add_argument("--num_beams", action="store", type=int, nargs='+', required=False, default=[5], help="Beam width for beam search")
     parser.add_argument("--save_csv", action="store", type=str, required=False, default="results/result.csv", help="Name to save output csv")
@@ -96,19 +96,27 @@ def main():
     parser.add_argument("--gen_video", action="store_true", required=False, help="Generate videos")
     parser.add_argument("--seed", action="store", type=int, required=False, default=2430, help="Random seed")
     args = parser.parse_args()
-    with open(args.save_csv, mode="w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Topology","Collective","Synthesizer","Num Beams","Trial","Collective Time","Synthesizer Time"])
+    
+    header = ["Topology","Collective","Synthesizer","Num Beams","Trial","Collective Time","Synthesizer Time"]
+    write_header = True
+    if os.path.isfile(args.save_csv):
+        with open(args.save_csv, mode="r", newline="") as f:
+            write_header = f.readline().strip() != ",".join(header)
 
-        if args.topology is None:
-            args.topology = ["nx_wheel_graph__n=10"]
-        if args.collective is None:
-            args.collective = ["all_gather"]
-        if args.synthesizer is None:
-            args.synthesizer = ["naive"]#, "tacos", "greedy_tacos", "multiple_tacos", "beam"]#, "ilp"]
-        for collective in args.collective:
-            for topology in args.topology:
-                for synthesizer in args.synthesizer:
+    with open(args.save_csv, mode="a", newline="") as f:
+        writer = csv.writer(f)
+        if write_header:
+            writer.writerow(header)
+
+        if args.topologies is None:
+            args.topologies = ["nx_tutte_graph"]#["nx_wheel_graph__n=10"]
+        if args.collectives is None:
+            args.collectives = ["all_gather"]
+        if args.synthesizers is None:
+            args.synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"]#, "ilp"]
+        for collective in args.collectives:
+            for topology in args.topologies:
+                for synthesizer in args.synthesizers:
                     for num_beams in args.num_beams:
                         begin = time.perf_counter()
                         command = ["python", "-m", "runner.synthesize", 

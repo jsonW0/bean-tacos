@@ -77,7 +77,6 @@ def main():
         collective = AllGather(npus_count=topology.num_nodes, collectives_count=1)
     elif args.collective=="all_to_all":
         collective = AllToAll(npus_count=topology.num_nodes, collectives_count=1)
-        collective.write_json("all_to_all.json")
     elif match := re.match(r"^scatter_(\d+)$",args.collective):
         collective = Scatter(npus_count=topology.num_nodes, src=int(match.group(1)), collectives_count=1)
     elif match := re.match(r"^broadcast_(\d+)$",args.collective):
