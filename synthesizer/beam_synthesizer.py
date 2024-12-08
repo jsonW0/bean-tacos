@@ -5,7 +5,6 @@ from copy import deepcopy
 from collections import defaultdict
 import networkx as nx
 from helper.typing import *
-from helper.event_queue import EventQueue
 from topology.topology import Topology
 from collective.collective import Collective
 from synthesizer.tacos_synthesizer import TACOSSynthesizer

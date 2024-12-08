@@ -71,7 +71,6 @@ class NaiveSynthesizer:
 
     def step(self) -> None:
         next_time, events = self.event_queue.pop()
-        # for edge,chunk,send_time,receive_time in events:
         self.current_time = next_time
 
     def discretize(self) -> None:

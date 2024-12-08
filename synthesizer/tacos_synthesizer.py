@@ -2,7 +2,6 @@ import csv
 import random
 from collections import defaultdict
 from helper.typing import *
-from helper.event_queue import EventQueue
 from topology.topology import Topology
 from collective.collective import Collective
 
@@ -21,7 +20,6 @@ class TACOSSynthesizer:
 
         self.current_time = 0
         self.event_history: List[Event] = []
-        self.event_queue = EventQueue()
 
         self.link_available_from = {edge:0 for edge in self.topology.G.edges}
         self.chunk_arrival_at_node = {node:defaultdict(lambda:float('inf')) for node in self.topology.G.nodes}
@@ -67,11 +65,8 @@ class TACOSSynthesizer:
         self.event_history.append((edge,chunk,send_time,receive_time))
         self.link_available_from[edge] = receive_time
         self.chunk_arrival_at_node[dest][chunk] = receive_time
-        # self.event_queue.push((edge,chunk,send_time,receive_time))
 
     def step(self) -> None:
-        # next_time, events = self.event_queue.pop()
-        # for edge,chunk,send_time,receive_time in events:
         link_available_from_plus_delay = [self.link_available_from[edge]+self.topology.get_delay(edge=edge, chunk_size=self.chunk_size) for edge in self.link_available_from.keys()]
         next_time = min(t for t in link_available_from_plus_delay if t>self.current_time)
         self.current_time = next_time

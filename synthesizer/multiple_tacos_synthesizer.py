@@ -3,7 +3,6 @@ import random
 import numpy as np
 from collections import defaultdict
 from helper.typing import *
-from helper.event_queue import EventQueue
 from topology.topology import Topology
 from collective.collective import Collective
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
