@@ -10,7 +10,7 @@ class Broadcast(Collective):
     def __init__(self,
                  npus_count: int,
                  src: NpuId,
-                 chunk_size: ChunkSize = 1048576 / 976562.5,
+                 chunk_size: ChunkSize = UnitChunkSize,
                  collectives_count: int = 1
                  ):
         """

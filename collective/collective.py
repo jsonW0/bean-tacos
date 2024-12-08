@@ -9,7 +9,7 @@ class Collective:
 
     def __init__(self,
                  filename: str = None,
-                 chunk_size: ChunkSize = 1048576 / 976562.5):
+                 chunk_size: ChunkSize = UnitChunkSize):
         """
         Initialize a collective.
 

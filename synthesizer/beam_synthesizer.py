@@ -3,27 +3,51 @@ import random
 import numpy as np
 from copy import deepcopy
 from collections import defaultdict
+import networkx as nx
 from helper.typing import *
 from helper.event_queue import EventQueue
 from topology.topology import Topology
 from collective.collective import Collective
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
 
+def softmax(x, temperature=1.0):
+    x = np.asarray(x, dtype=np.float64) / temperature  
+    x -= np.max(x)
+    x = np.exp(x)      
+    return x / np.sum(x)
+
 class BeamSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, discretize=False, num_beams=1, fitness_type="chunk_count"):
+    def __init__(self, topology: Topology, collective: Collective, discretize=False, num_beams=1, fitness_type="chunk_count", temperature=0.):
         self.num_beams = num_beams
         self.instances = [
             TACOSSynthesizer(topology=topology, collective=collective, discretize=discretize) for _ in range(self.num_beams)
         ]
         self.fitness_type = fitness_type
+        self.temperature = 0.
+        self.shortest_paths = None
 
     def compute_fitness(self, instance: TACOSSynthesizer) -> float:
         # A: total number of chunks each has
         # B: link utilization
         # C: weighting by degree
-        # D: sum of shortest path distances of precondition to postcondition
+        # D: max of shortest path distances of precondition to postcondition
         if self.fitness_type=="chunk_count":
             return sum(len(instance.get_chunks_at_node(node,instance.current_time)) for node in instance.nodes)
+        elif self.fitness_type=="shortest_path":
+            if self.shortest_paths is None:
+                # Uses Floyd-Warshall, but could change to use Dijkstra, Bellman-Ford, or Johnson
+                G = instance.topology.G
+                for src, dest in G.edges:
+                    G.add_edge(src, dest, link_delay=instance.topology.get_delay(edge=(src,dest)))
+                self.shortest_paths = nx.floyd_warshall_numpy(G, weight="link_delay")
+            # For each postcondition, get the shortest distance to the nearest chunk
+            preconditions = defaultdict([])
+            for node, chunk in {node:set(instance.get_chunks_at_node(node,instance.current_time)) for node in instance.nodes}.items():
+                preconditions[chunk].append(node)
+            distances = []
+            for chunk, node in instance.collective.postcondition:
+                distances.append(min(self.shortest_paths[node,candidate_node] for candidate_node in preconditions[chunk]))
+            return max(distances)
         else:
             raise ValueError(f"Fitness function not supported: {self.fitness_type}")
 
@@ -46,8 +70,10 @@ class BeamSynthesizer:
                                 instance_copy.match(edge=chosen_edge, chunk=chosen_chunk)
                         population.append(instance_copy)
             population_fitnesses = [self.compute_fitness(instance) for instance in population]
-            # print("F",population_fitnesses,np.argpartition(population_fitnesses,-self.num_beams)[-self.num_beams:])
-            self.instances = [population[i] for i in np.argpartition(population_fitnesses,-self.num_beams)[-self.num_beams:]]
+            if self.temperature==0:
+                self.instances = [population[i] for i in np.argpartition(population_fitnesses,-self.num_beams)[-self.num_beams:]]
+            else:
+                self.instances = np.random.choice(population,p=softmax(population_fitnesses,temperature=self.temperature),replace=False,size=self.num_beams)
     
     @property
     def current_time(self):

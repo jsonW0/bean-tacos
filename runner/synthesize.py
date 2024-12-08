@@ -47,6 +47,7 @@ def main():
     # Algorithm-specific arguments
     parser.add_argument("--num_beams", action="store", type=int, required=False, default=1, help="Beam width for beam search")
     parser.add_argument("--fitness_type", action="store", type=str, required=False, default="chunk_count", help="Fitness function for beam serach")
+    parser.add_argument("--temperature", action="store", type=float, required=False, default=0., help="Temperature for beam search")
     args = parser.parse_args()
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -101,10 +102,10 @@ def main():
             synthesizer = GreedyTACOSSynthesizer(topology=topology,collective=collective)
             synthesizer.solve()
         elif args.synthesizer=="multiple_tacos":
-            synthesizer = MultipleTACOSSynthesizer(topology=topology,collective=collective, num_beams=args.num_beams)
+            synthesizer = MultipleTACOSSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams)
             synthesizer.solve()
         elif args.synthesizer=="beam":
-            synthesizer = BeamSynthesizer(topology=topology,collective=collective, num_beams=args.num_beams)
+            synthesizer = BeamSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams,fitness_type=args.fitness_type,temperature=args.temperature)
             synthesizer.solve()
         elif args.synthesizer=="ilp":
             synthesizer = ILPSynthesizer(topology=topology,collective=collective)

@@ -34,7 +34,7 @@ class Topology:
     def num_edges(self):
         return self.G.number_of_edges()
     
-    def get_delay(self, edge: LinkId, chunk_size: ChunkSize) -> Time:
+    def get_delay(self, edge: LinkId, chunk_size: ChunkSize = UnitChunkSize) -> Time:
         return self.G.edges[edge]["alpha"]+ (chunk_size/(1 << 30))*(1e9/self.G.edges[edge]["beta"])
 
     def connect(self,

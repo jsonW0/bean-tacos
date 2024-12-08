@@ -13,6 +13,7 @@ LinkAlphaBeta = Tuple[LinkWeight, LinkWeight]  # (alpha, beta)
 # Collective
 ChunkId = int
 ChunkSize = float  # e.g., 2.7 MB
+UnitChunkSize = 1048576 / 976562.5
 
 # Time-expanded Network (TEN)
 Event = Tuple[LinkId, ChunkId, Time, Time]
