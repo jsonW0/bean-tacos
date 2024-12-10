@@ -63,16 +63,30 @@ def get_topology(specifier: str) -> Topology:
     elif match := re.match(r"^grid(?:__(?P<args>.*))?$", specifier):
         # Line/Grid
         args = parse_match(match)
-        G = nx.grid_graph(dim=args["dim"]).to_directed()
+        G = nx.convert_node_labels_to_integers(nx.grid_graph(dim=args["dim"]).to_directed())
         for src, dest in G.edges:
             G.add_edge(src,dest,alpha=0.,beta=1.)
+        if "outages" in args:
+            for outage in args["outages"]:
+                G.remove_node(outage)
+        G = nx.convert_node_labels_to_integers(G)
         return Topology(G=G)
     elif match := re.match(r"^torus(?:__(?P<args>.*))?$", specifier):
         # Ring/Torus
         args = parse_match(match)
-        G = nx.grid_graph(dim=args["dim"], periodic=True).to_directed()
+        G = nx.convert_node_labels_to_integers(nx.grid_graph(dim=args["dim"], periodic=True).to_directed())
         for src, dest in G.edges:
             G.add_edge(src,dest,alpha=0.,beta=1.)
+        return Topology(G=G)
+    elif match := re.match(r"^ring(?:__(?P<args>.*))?$", specifier):
+        # Ring with bottleneck
+        args = parse_match(match)
+        G = nx.convert_node_labels_to_integers(nx.grid_graph(dim=args["dim"], periodic=True).to_directed())
+        for i, (src, dest) in enumerate(G.edges):
+            if i==0:
+                G.add_edge(src,dest,alpha=0.,beta=args["slow"])
+            else:
+                G.add_edge(src,dest,alpha=0.,beta=1.)
         return Topology(G=G)
     elif match := re.match(r"^tree(?:__(?P<args>.*))?$", specifier):
         # Star/Tree

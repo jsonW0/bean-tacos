@@ -1,21 +1,13 @@
 #!/bin/bash
-clear; python -m runner.synthesize --topology tests/biangle.csv --collective all_gather --synthesizer beam --num_beams 5
-python visualize_collective.py --filename results/t=tests-biangle_c=all_gather_s=beam/result.csv
-
-clear; python -m runner.synthesize --topology tests/triangle.csv --collective all_gather --synthesizer beam --num_beams 5
-python visualize_collective.py --filename results/t=tests-triangle_c=all_gather_s=beam/result.csv
-
-clear; python -m runner.synthesize --topology tests/quadangle.csv --collective all_gather --synthesizer beam --num_beams 5
-python visualize_collective.py --filename results/t=tests-quadangle_c=all_gather_s=beam/result.csv
-
-clear; python -m runner.synthesize --topology tests/bidirectional_ring.csv --collective all_gather --synthesizer beam --num_beams 5
-python visualize_collective.py --filename results/t=tests-bidirectional_ring_c=all_gather_s=beam/result.csv
-
-clear; python -m runner.synthesize --topology tests/bidirectional_ring_slow.csv --collective all_gather --synthesizer beam --num_beams 5
-python visualize_collective.py --filename results/t=tests-bidirectional_ring_slow_c=all_gather_s=beam/result.csv
-
-clear; python -m runner.synthesize --topology tests/heterogeneous.csv --collective all_gather --synthesizer beam --num_beams 5
-python visualize_collective.py --filename results/t=tests-heterogeneous_c=all_gather_s=beam/result.csv
-
-clear; python -m runner.synthesize --topology grid --collective all_gather --synthesizer beam  --num_beams 5
-python visualize_collective.py --filename results/t=grid_c=all_gather_s=beam/result.csv
+clear
+# Line experiment
+# python scripts/test.py --topologies "grid__dim=(1,4)" "grid__dim=(1,8)" "grid__dim=(1,16)" "grid__dim=(1,32)" "grid__dim=(1,64)" "grid__dim=(1,128)"
+# Ring experiment
+# python scripts/test.py --topologies "ring__dim=(1,5)__slow=0.19" --synthesizer "naive" "tacos"
+# Homogeneous grid experiment
+# python scripts/test.py --topologies "grid__dim=(2,3)" "grid__dim=(2,4)" "grid__dim=(2,5)" "grid__dim=(3,3)" "grid__dim=(3,4)" "grid__dim=(3,5)" "grid__dim=(4,4)" "grid__dim=(4,5)" "grid__dim=(5,5)"
+# Homogeneous torus experiment
+# python scripts/test.py --topologies "torus__dim=(2,3)" "torus__dim=(2,4)" "torus__dim=(2,5)" "torus__dim=(3,3)" "torus__dim=(3,4)" "torus__dim=(3,5)" "torus__dim=(4,4)" "torus__dim=(4,5)" "torus__dim=(5,5)"
+# Grid outage experiment
+# python scripts/test.py --topologies "grid__dim=(4,4)__outages=[0]" "grid__dim=(4,4)__outages=[1]" "grid__dim=(4,4)__outages=[5]"
+python scripts/test.py --topologies "grid__dim=(4,4)__outages=[1,5]" "grid__dim=(4,4)__outages=[1,6]" "grid__dim=(4,4)__outages=[1,9]" "grid__dim=(4,4)__outages=[1,10]"

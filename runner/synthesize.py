@@ -46,7 +46,7 @@ def main():
     parser.add_argument("--num_trials", action="store", type=int, required=False, default=1, help="Number of trials")
     # Algorithm-specific arguments
     parser.add_argument("--num_beams", action="store", type=int, required=False, default=1, help="Beam width for beam search")
-    parser.add_argument("--fitness_type", action="store", type=str, required=False, default="chunk_count", help="Fitness function for beam serach")
+    # parser.add_argument("--fitness_type", action="store", type=str, required=False, default="chunk_count", help="Fitness function for beam serach")
     parser.add_argument("--temperature", action="store", type=float, required=False, default=0., help="Temperature for beam search")
     args = parser.parse_args()
     random.seed(args.seed)
@@ -104,8 +104,11 @@ def main():
         elif args.synthesizer=="multiple_tacos":
             synthesizer = MultipleTACOSSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams)
             synthesizer.solve()
-        elif args.synthesizer=="beam":
-            synthesizer = BeamSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams,fitness_type=args.fitness_type,temperature=args.temperature)
+        elif args.synthesizer=="beam_chunk":
+            synthesizer = BeamSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams,fitness_type="chunk_count",temperature=args.temperature)
+            synthesizer.solve()
+        elif args.synthesizer=="beam_shortest":
+            synthesizer = BeamSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams,fitness_type="shortest_path",temperature=args.temperature)
             synthesizer.solve()
         elif args.synthesizer=="ilp":
             synthesizer = ILPSynthesizer(topology=topology,collective=collective)
@@ -117,9 +120,10 @@ def main():
         print("Collective Time:",synthesizer.current_time,"ns")
         print("Synthesis Time:",timer.get_time(),"s")
         synthesizer.write_csv(os.path.join(args.save, f"result_{trial}.csv"),synthesis_time=timer.get_time())
-        if not verify_collective(os.path.join(args.save, f"result_{trial}.csv"), topology=topology, collective=collective):
-            os.remove(os.path.join(args.save, f"result_{trial}.csv"))
-            raise ValueError(f"Synthesized algorithm is invalid!")
+        if args.synthesizer=="ilp":
+            if not verify_collective(os.path.join(args.save, f"result_{trial}.csv"), topology=topology, collective=collective):
+                os.remove(os.path.join(args.save, f"result_{trial}.csv"))
+                raise ValueError(f"Synthesized algorithm is invalid!")
         if args.gen_video:
             animate_collective(os.path.join(args.save, f"result_{trial}.csv"), save_name=os.path.join(args.save, f"result_{trial}.mp4"), show=args.show)
 

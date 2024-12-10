@@ -89,8 +89,8 @@ def main():
     parser.add_argument("--topologies", action="store", type=str, nargs='+', required=False, help="Name of topology or filepath to topology csv")
     parser.add_argument("--collectives", action="store", type=str, nargs='+', required=False, help="Name of collective pattern or filepath to collective csv")
     parser.add_argument("--synthesizers", action="store", type=str, nargs='+', required=False, help="Name of synthesis algorithm")
-    parser.add_argument("--num_trials", action="store", type=int, required=False, default=5, help="Number of trials")
-    parser.add_argument("--num_beams", action="store", type=int, nargs='+', required=False, default=[5], help="Beam width for beam search")
+    parser.add_argument("--num_trials", action="store", type=int, required=False, default=30, help="Number of trials")
+    parser.add_argument("--num_beams", action="store", type=int, nargs='+', required=False, default=[30], help="Beam width for beam search")
     parser.add_argument("--save_csv", action="store", type=str, required=False, default="results/result.csv", help="Name to save output csv")
     parser.add_argument("--save_html", action="store", type=str, required=False, default="results/result.html", help="Name to save output pyg html")
     parser.add_argument("--gen_video", action="store_true", required=False, help="Generate videos")
@@ -113,7 +113,7 @@ def main():
         if args.collectives is None:
             args.collectives = ["all_gather"]
         if args.synthesizers is None:
-            args.synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"]#, "ilp"]
+            args.synthesizers = ["naive", "tacos", "greedy_tacos", "multiple_tacos", "beam_chunk", "beam_shortest"]#, "ilp"]
         for collective in args.collectives:
             for topology in args.topologies:
                 for synthesizer in args.synthesizers:
@@ -131,7 +131,11 @@ def main():
                             command.extend([
                                 "--num_beams", str(num_beams),
                             ])
-                        if synthesizer in {"naive", "tacos", "greedy_tacos", "multiple_tacos", "beam"}:
+                        # if synthesizer=="beam_shortest":
+                        #     command.extend([
+                        #         "--fitness_type", "shortest_path",
+                        #     ])
+                        if synthesizer in {"naive", "tacos", "greedy_tacos", "multiple_tacos", "beam_chunk", "beam_shortest"}:
                             num_trials = args.num_trials
                             command.extend([
                                 "--num_trials", str(num_trials),

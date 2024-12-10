@@ -40,9 +40,10 @@ class BeamSynthesizer:
                     G.add_edge(src, dest, link_delay=instance.topology.get_delay(edge=(src,dest)))
                 self.shortest_paths = nx.floyd_warshall_numpy(G, weight="link_delay")
             # For each postcondition, get the shortest distance to the nearest chunk
-            preconditions = defaultdict([])
-            for node, chunk in {node:set(instance.get_chunks_at_node(node,instance.current_time)) for node in instance.nodes}.items():
-                preconditions[chunk].append(node)
+            preconditions = defaultdict(list)
+            for node, chunks in {node:set(instance.get_chunks_at_node(node,instance.current_time)) for node in instance.nodes}.items():
+                for chunk in chunks:
+                    preconditions[chunk].append(node)
             distances = []
             for chunk, node in instance.collective.postcondition:
                 distances.append(min(self.shortest_paths[node,candidate_node] for candidate_node in preconditions[chunk]))
