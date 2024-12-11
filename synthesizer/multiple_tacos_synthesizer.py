@@ -2,18 +2,22 @@ import csv
 import random
 import numpy as np
 from collections import defaultdict
+from joblib import Parallel, delayed
 from helper.typing import *
 from topology.topology import Topology
 from collective.collective import Collective
 from synthesizer.tacos_synthesizer import TACOSSynthesizer
 
 class MultipleTACOSSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, discretize=False, num_beams=1):
+    def __init__(self, topology: Topology, collective: Collective, discretize=False, num_beams=1, seed=None):
+        self.rng = random.Random(seed)
+        seeds = [self.rng.randint(0,2**32-1) for _ in range(num_beams)]
         self.instances = [
-            TACOSSynthesizer(topology=topology, collective=collective, discretize=discretize) for _ in range(num_beams)
+            TACOSSynthesizer(topology=topology, collective=collective, discretize=discretize, seed=seeds[i]) for i in range(num_beams)
         ]
     
     def solve(self) -> None:
+        # Parallel(n_jobs=-1)(delayed(instance.solve)() for instance in self.instances)
         for i in range(len(self.instances)):
             self.instances[i].solve()
 

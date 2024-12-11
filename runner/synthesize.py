@@ -89,26 +89,27 @@ def main():
     ####################################################################################################
     # SYNTHESIZER
     ####################################################################################################
+    seeds = [random.randint(0,2**32-1) for _ in range(args.num_trials)]
     for trial in range(1,args.num_trials+1):
         timer = Timer(name="Synthesizer")
         timer.start()
         if args.synthesizer=="naive":
-            synthesizer = NaiveSynthesizer(topology=topology,collective=collective)
+            synthesizer = NaiveSynthesizer(topology=topology,collective=collective,seed=seeds[trial-1])
             synthesizer.solve()
         elif args.synthesizer=="tacos":
-            synthesizer = TACOSSynthesizer(topology=topology,collective=collective)
+            synthesizer = TACOSSynthesizer(topology=topology,collective=collective,seed=seeds[trial-1])
             synthesizer.solve()
         elif args.synthesizer=="greedy_tacos":
             synthesizer = GreedyTACOSSynthesizer(topology=topology,collective=collective)
             synthesizer.solve()
         elif args.synthesizer=="multiple_tacos":
-            synthesizer = MultipleTACOSSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams)
+            synthesizer = MultipleTACOSSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams,seed=seeds[trial-1])
             synthesizer.solve()
         elif args.synthesizer=="beam_chunk":
-            synthesizer = BeamSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams,fitness_type="chunk_count",temperature=args.temperature)
+            synthesizer = BeamSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams,fitness_type="chunk_count",temperature=args.temperature,seed=seeds[trial-1])
             synthesizer.solve()
         elif args.synthesizer=="beam_shortest":
-            synthesizer = BeamSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams,fitness_type="shortest_path",temperature=args.temperature)
+            synthesizer = BeamSynthesizer(topology=topology,collective=collective,num_beams=args.num_beams,fitness_type="shortest_path",temperature=args.temperature,seed=seeds[trial-1])
             synthesizer.solve()
         elif args.synthesizer=="ilp":
             synthesizer = ILPSynthesizer(topology=topology,collective=collective)

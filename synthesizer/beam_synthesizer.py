@@ -16,13 +16,15 @@ def softmax(x, temperature=1.0):
     return x / np.sum(x)
 
 class BeamSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, discretize=False, num_beams=1, fitness_type="chunk_count", temperature=0.):
+    def __init__(self, topology: Topology, collective: Collective, discretize=False, num_beams=1, fitness_type="chunk_count", temperature=0., seed=None):
+        self.rng = np.random.default_rng(seed)
         self.num_beams = num_beams
+        seeds = [self.rng.integers(0,2**32-1) for _ in range(self.num_beams)]
         self.instances = [
-            TACOSSynthesizer(topology=topology, collective=collective, discretize=discretize) for _ in range(self.num_beams)
+            TACOSSynthesizer(topology=topology, collective=collective, discretize=discretize, seed=seeds[i]) for i in range(self.num_beams)
         ]
         self.fitness_type = fitness_type
-        self.temperature = 0.
+        self.temperature = temperature
         self.shortest_paths = None
 
     def compute_fitness(self, instance: TACOSSynthesizer) -> float:
@@ -66,14 +68,14 @@ class BeamSynthesizer:
                                 instance_copy.step()
                                 break
                             else:
-                                chosen_edge, chosen_chunk = random.choice(possible_matches)
+                                chosen_edge, chosen_chunk = instance_copy.rng.choice(possible_matches)
                                 instance_copy.match(edge=chosen_edge, chunk=chosen_chunk)
                         population.append(instance_copy)
             population_fitnesses = [self.compute_fitness(instance) for instance in population]
             if self.temperature==0:
                 self.instances = [population[i] for i in np.argpartition(population_fitnesses,-self.num_beams)[-self.num_beams:]]
             else:
-                self.instances = np.random.choice(population,p=softmax(population_fitnesses,temperature=self.temperature),replace=False,size=self.num_beams)
+                self.instances = self.rng.choice(population,p=softmax(population_fitnesses,temperature=self.temperature),replace=False,size=self.num_beams)
     
     @property
     def current_time(self):

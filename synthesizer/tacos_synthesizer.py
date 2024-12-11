@@ -6,7 +6,9 @@ from topology.topology import Topology
 from collective.collective import Collective
 
 class TACOSSynthesizer:
-    def __init__(self, topology: Topology, collective: Collective, discretize=False):
+    def __init__(self, topology: Topology, collective: Collective, discretize=False, seed=None):
+        self.rng = random.Random(seed)
+
         self.topology = topology
         self.collective = collective
         self.chunk_size = collective.chunk_size
@@ -83,7 +85,7 @@ class TACOSSynthesizer:
             if len(possible_matches)==0:
                 self.step()
             else:
-                chosen_edge, chosen_chunk = random.choice(possible_matches)
+                chosen_edge, chosen_chunk = self.rng.choice(possible_matches)
                 self.match(edge=chosen_edge, chunk=chosen_chunk)
     
     def write_csv(self, filename: str, synthesis_time: float) -> None:

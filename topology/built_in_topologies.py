@@ -18,7 +18,7 @@ def tree_topology(degrees: list, latencies: list, bandwidths: list) -> Topology:
                 tree.add_edge(parent, node_id, alpha=latencies[level], beta=bandwidths[level])
                 next_level_nodes.append(node_id)
         nodes_at_current_level = next_level_nodes
-    return Topology(G=tree.to_directed())
+    return tree.to_directed()
 
 def get_topology(specifier: str) -> Topology:
     def parse_match(match: re.Match) -> dict:
@@ -39,8 +39,8 @@ def get_topology(specifier: str) -> Topology:
 
         alpha = args.pop("alpha") if "alpha" in args else 0.
         beta = args.pop("beta") if "beta" in args else 1.
-        alpha2 = args.pop("alpha2") if "alpha" in args else 0.
-        beta2 = args.pop("beta2") if "beta" in args else 0.5
+        alpha2 = args.pop("alpha2") if "alpha2" in args else 0.
+        beta2 = args.pop("beta2") if "beta2" in args else 0.5
         proportion = args.pop("proportion") if "proportion" in args else 0.
 
         graph_function = getattr(nx, generator_name)
