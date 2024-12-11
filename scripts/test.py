@@ -91,13 +91,14 @@ def main():
     parser.add_argument("--synthesizers", action="store", type=str, nargs='+', required=False, help="Name of synthesis algorithm")
     parser.add_argument("--num_trials", action="store", type=int, required=False, default=30, help="Number of trials")
     parser.add_argument("--num_beams", action="store", type=int, nargs='+', required=False, default=[30], help="Beam width for beam search")
+    parser.add_argument("--temperature", action="store", type=float, nargs='+', required=False, default=[0.], help="Temperature for beam search")
     parser.add_argument("--save_csv", action="store", type=str, required=False, default="results/result.csv", help="Name to save output csv")
     parser.add_argument("--save_html", action="store", type=str, required=False, default="results/result.html", help="Name to save output pyg html")
     parser.add_argument("--gen_video", action="store_true", required=False, help="Generate videos")
     parser.add_argument("--seed", action="store", type=int, required=False, default=2430, help="Random seed")
     args = parser.parse_args()
     
-    header = ["Topology","Collective","Synthesizer","Num Beams","Trial","Collective Time","Synthesizer Time"]
+    header = ["Topology","Collective","Synthesizer","Num Beams","Temperature","Trial","Collective Time","Synthesizer Time"]
     write_header = True
     if os.path.isfile(args.save_csv):
         with open(args.save_csv, mode="r", newline="") as f:
@@ -118,40 +119,38 @@ def main():
             for topology in args.topologies:
                 for synthesizer in args.synthesizers:
                     for num_beams in args.num_beams:
-                        begin = time.perf_counter()
-                        command = ["python", "-m", "runner.synthesize", 
-                            "--topology", topology, 
-                            "--collective", collective,
-                            "--synthesizer", synthesizer,
-                            "--seed", str(args.seed),
-                        ]
-                        if args.gen_video:
-                            command.append("--gen_video")
-                        if synthesizer in {"multiple_tacos", "beam"}:
-                            command.extend([
-                                "--num_beams", str(num_beams),
-                            ])
-                        # if synthesizer=="beam_shortest":
-                        #     command.extend([
-                        #         "--fitness_type", "shortest_path",
-                        #     ])
-                        if synthesizer in {"naive", "tacos", "greedy_tacos", "multiple_tacos", "beam_chunk", "beam_shortest"}:
-                            num_trials = args.num_trials
-                            command.extend([
-                                "--num_trials", str(num_trials),
-                            ])
-                        else:
-                            num_trials = 1
-                        print(f"Running: {' '.join(command)}")
-                        return_code, stdout, stderr = run_command(command)
-                        finish = time.perf_counter()
-                        if return_code!=0:
-                            print(f"\tFailed!")
-                        else:
-                            for trial in range(1,num_trials+1):
-                                collective_time, synthesizer_time = parse_csv(os.path.join("results",f"t={topology}_c={collective}_s={synthesizer}",f"result_{trial}.csv"))
-                                writer.writerow([topology, collective, synthesizer, num_beams, trial, collective_time, synthesizer_time])
-                                print(f"\tColl={collective_time:.2f}_Synth={synthesizer_time:.2f}_Clock={finish-begin:.2f}")
+                        for temperature in args.temperature:
+                            begin = time.perf_counter()
+                            command = ["python", "-m", "runner.synthesize", 
+                                "--topology", topology, 
+                                "--collective", collective,
+                                "--synthesizer", synthesizer,
+                                "--seed", str(args.seed),
+                            ]
+                            if args.gen_video:
+                                command.append("--gen_video")
+                            if synthesizer in {"multiple_tacos", "beam"}:
+                                command.extend([
+                                    "--num_beams", str(num_beams),
+                                    "--temperature", str(temperature),
+                                ])
+                            if synthesizer in {"naive", "tacos", "greedy_tacos", "multiple_tacos", "beam_chunk", "beam_shortest"}:
+                                num_trials = args.num_trials
+                                command.extend([
+                                    "--num_trials", str(num_trials),
+                                ])
+                            else:
+                                num_trials = 1
+                            print(f"Running: {' '.join(command)}")
+                            return_code, stdout, stderr = run_command(command)
+                            finish = time.perf_counter()
+                            if return_code!=0:
+                                print(f"\tFailed!")
+                            else:
+                                for trial in range(1,num_trials+1):
+                                    collective_time, synthesizer_time = parse_csv(os.path.join("results",f"t={topology}_c={collective}_s={synthesizer}",f"result_{trial}.csv"))
+                                    writer.writerow([topology, collective, synthesizer, num_beams, temperature, trial, collective_time, synthesizer_time])
+                                    print(f"\tColl={collective_time:.2f}_Synth={synthesizer_time:.2f}_Clock={finish-begin:.2f}")
     df = pd.read_csv(args.save_csv)
     with suppress_stdout():
         walker = pyg.walk(df)

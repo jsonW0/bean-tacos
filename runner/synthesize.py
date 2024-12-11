@@ -43,6 +43,7 @@ def main():
     parser.add_argument("--gen_video", action="store_true", required=False, help="Generate video")
     parser.add_argument("--show", action="store_true", required=False, help="Show animation")
     parser.add_argument("--seed", action="store", type=int, required=False, default=2430, help="Random seed")
+    parser.add_argument("--seed", action="store", type=int, required=False, default=None, help="Random seed")
     parser.add_argument("--num_trials", action="store", type=int, required=False, default=1, help="Number of trials")
     # Algorithm-specific arguments
     parser.add_argument("--num_beams", action="store", type=int, required=False, default=1, help="Beam width for beam search")

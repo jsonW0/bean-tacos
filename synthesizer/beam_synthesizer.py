@@ -49,7 +49,7 @@ class BeamSynthesizer:
             distances = []
             for chunk, node in instance.collective.postcondition:
                 distances.append(min(self.shortest_paths[node,candidate_node] for candidate_node in preconditions[chunk]))
-            return max(distances)
+            return -max(distances)
         else:
             raise ValueError(f"Fitness function not supported: {self.fitness_type}")
 

@@ -96,5 +96,13 @@ def get_topology(specifier: str) -> Topology:
         # for src, dest in G.edges:
         #     G.add_edge(src,dest,alpha=0.,beta=1.)
         return Topology(G=G)
+    # elif match := re.match(r"^dgx(?:__(?P<args>.*))?$", specifier):
+    #     # Star/Tree
+    #     args = parse_match(match)
+    #     G = 
+    #     # G = nx.full_rary_tree(r=args["r"], n=args["n"]).to_directed()
+    #     # for src, dest in G.edges:
+    #     #     G.add_edge(src,dest,alpha=0.,beta=1.)
+    #     return Topology(G=G)
     else:
         raise ValueError(f"Cannot find or recognize: {specifier}")
